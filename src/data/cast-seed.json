@@ -1,0 +1,22 @@
+[
+  { "countryIso": "UA", "countryName": "Ukraine", "bestCase": 6549, "expectedCase": 6899, "worstCase": 7769, "predictedChange": "increase" },
+  { "countryIso": "LB", "countryName": "Lebanon", "bestCase": 703, "expectedCase": 1381, "worstCase": 2730, "predictedChange": "increase" },
+  { "countryIso": "RU", "countryName": "Russia", "bestCase": 1020, "expectedCase": 1301, "worstCase": 1693, "predictedChange": "increase" },
+  { "countryIso": "IR", "countryName": "Iran", "bestCase": 797, "expectedCase": 837, "worstCase": 856, "predictedChange": "increase" },
+  { "countryIso": "MM", "countryName": "Myanmar", "bestCase": 527, "expectedCase": 709, "worstCase": 830, "predictedChange": "decrease" },
+  { "countryIso": "BR", "countryName": "Brazil", "bestCase": 527, "expectedCase": 594, "worstCase": 693, "predictedChange": "decrease" },
+  { "countryIso": "NG", "countryName": "Nigeria", "bestCase": 442, "expectedCase": 514, "worstCase": 602, "predictedChange": "decrease" },
+  { "countryIso": "MX", "countryName": "Mexico", "bestCase": 407, "expectedCase": 500, "worstCase": 601, "predictedChange": "decrease" },
+  { "countryIso": "PS", "countryName": "Palestine", "bestCase": 164, "expectedCase": 369, "worstCase": 862, "predictedChange": "stable" },
+  { "countryIso": "SO", "countryName": "Somalia", "bestCase": 299, "expectedCase": 353, "worstCase": 464, "predictedChange": "decrease" },
+  { "countryIso": "PK", "countryName": "Pakistan", "bestCase": 253, "expectedCase": 300, "worstCase": 369, "predictedChange": "decrease" },
+  { "countryIso": "CM", "countryName": "Cameroon", "bestCase": 220, "expectedCase": 292, "worstCase": 360, "predictedChange": "decrease" },
+  { "countryIso": "SY", "countryName": "Syria", "bestCase": 173, "expectedCase": 292, "worstCase": 541, "predictedChange": "decrease" },
+  { "countryIso": "IL", "countryName": "Israel", "bestCase": 113, "expectedCase": 202, "worstCase": 470, "predictedChange": "increase" },
+  { "countryIso": "EC", "countryName": "Ecuador", "bestCase": 206, "expectedCase": 246, "worstCase": 300, "predictedChange": "decrease" },
+  { "countryIso": "CD", "countryName": "Dem. Rep. Congo", "bestCase": 167, "expectedCase": 213, "worstCase": 291, "predictedChange": "decrease" },
+  { "countryIso": "IQ", "countryName": "Iraq", "bestCase": 93, "expectedCase": 208, "worstCase": 410, "predictedChange": "increase" },
+  { "countryIso": "SD", "countryName": "Sudan", "bestCase": 130, "expectedCase": 205, "worstCase": 376, "predictedChange": "decrease" },
+  { "countryIso": "CO", "countryName": "Colombia", "bestCase": 147, "expectedCase": 182, "worstCase": 214, "predictedChange": "decrease" },
+  { "countryIso": "YE", "countryName": "Yemen", "bestCase": 125, "expectedCase": 173, "worstCase": 221, "predictedChange": "decrease" }
+]
