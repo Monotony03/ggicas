@@ -22,9 +22,64 @@ export async function POST(request: Request) {
     // The tokens can be used here via axios to the real ACLED endpoint if provided.
     console.log("Tokens provided:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
     
-    // Load static seed data
-    const seedPath = path.join(process.cwd(), "src/data/cast-seed.json");
-    const seedData = JSON.parse(fs.readFileSync(seedPath, "utf-8"));
+    let seedData: any[] = [];
+
+    if (accessToken) {
+      console.log("Fetching data from ACLED CAST API...");
+      try {
+        const response = await fetch("https://acleddata.com/api/cast/read/?limit=10000", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`ACLED API responded with status: ${response.status}`);
+        }
+
+        const json = await response.json();
+        const apiData = json.data || [];
+
+        // Group by country since CAST data is often admin1 level
+        const countryMap = new Map<string, any>();
+        
+        for (const item of apiData) {
+          // Filter for the current forecast month (or just aggregate all for simplicity in this demo)
+          const country = item.country;
+          if (!countryMap.has(country)) {
+            countryMap.set(country, {
+              countryIso: country.substring(0, 3).toUpperCase(), // simplified ISO mapping
+              countryName: country,
+              totalForecast: 0
+            });
+          }
+          const existing = countryMap.get(country);
+          existing.totalForecast += (item.total_forecast || 0);
+        }
+
+        seedData = Array.from(countryMap.values()).map(c => {
+          const expectedCase = c.totalForecast;
+          return {
+            countryIso: c.countryIso,
+            countryName: c.countryName,
+            expectedCase: expectedCase,
+            bestCase: Math.floor(expectedCase * 0.8),
+            worstCase: Math.ceil(expectedCase * 1.2),
+            predictedChange: 0 // Cannot compute change without historical data in this simplified sync
+          };
+        });
+
+        console.log(`Aggregated CAST data into ${seedData.length} countries.`);
+      } catch (err) {
+        console.error("Error fetching from ACLED API, falling back to seed data:", err);
+      }
+    }
+
+    if (seedData.length === 0) {
+      console.log("Using static seed data as fallback.");
+      const seedPath = path.join(process.cwd(), "src/data/cast-seed.json");
+      seedData = JSON.parse(fs.readFileSync(seedPath, "utf-8"));
+    }
 
     let upsertedCount = 0;
 

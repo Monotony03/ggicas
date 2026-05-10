@@ -6,7 +6,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const conflict = await prisma.conflict.findUnique({
       where: { id },
-      include: { participants: { include: { country: true } } }
+      include: {
+        participants: {
+          include: {
+            country: {
+              include: {
+                alliancesA: { include: { organization: true } },
+                sanctionsIn: { include: { imposingCountry: true } },
+                armsImports: {
+                  orderBy: { year: 'desc' },
+                  take: 2,
+                  include: { exporter: true }
+                }
+              }
+            }
+          }
+        }
+      }
     })
     if (!conflict) return NextResponse.json({ error: 'Conflict not found' }, { status: 404 })
     return NextResponse.json(conflict)

@@ -65,12 +65,12 @@ const PANELS = [
     description:
       "Explore an interactive 3D world map. Click any nation to pull up alliances, conflicts, and economic data.",
     icon: Globe2,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    shadowColor: "rgba(139,92,246,0.5)",
-    border: "rgba(139,92,246,0.35)",
-    bgTint: "rgba(139,92,246,0.07)",
+    gradient: "from-[#163058] to-[#2563a8]",
+    shadowColor: "rgba(37,99,168,0.35)",
+    border: "rgba(37,99,168,0.28)",
+    bgTint: "rgba(37,99,168,0.06)",
     badge: "Live",
-    badgeClass: "badge-violet",
+    badgeClass: "badge-primary",
     stats: [{ icon: Map, label: "Nations", key: "countries" }],
   },
   {
@@ -81,12 +81,12 @@ const PANELS = [
     description:
       "Deep-dive charts and statistics — conflict timelines, trade flows, military spending ratios, sanctions networks.",
     icon: BarChart3,
-    gradient: "from-teal-400 via-cyan-500 to-sky-500",
-    shadowColor: "rgba(20,184,166,0.5)",
-    border: "rgba(20,184,166,0.35)",
-    bgTint: "rgba(20,184,166,0.07)",
+    gradient: "from-[#1e4618] to-[#3d7c30]",
+    shadowColor: "rgba(61,124,48,0.30)",
+    border: "rgba(61,124,48,0.25)",
+    bgTint: "rgba(61,124,48,0.05)",
     badge: "Charts",
-    badgeClass: "badge-teal",
+    badgeClass: "badge-field",
     stats: [{ icon: TrendingUp, label: "Datasets", key: "alliances" }],
   },
   {
@@ -97,10 +97,10 @@ const PANELS = [
     description:
       "Full CRUD operations — manage countries, conflicts, alliances, sanctions, and trade records in real time.",
     icon: Database,
-    gradient: "from-amber-400 via-orange-400 to-rose-400",
-    shadowColor: "rgba(251,191,36,0.5)",
-    border: "rgba(251,191,36,0.35)",
-    bgTint: "rgba(251,191,36,0.07)",
+    gradient: "from-[#3d2800] to-[#92620a]",
+    shadowColor: "rgba(176,125,26,0.30)",
+    border: "rgba(176,125,26,0.25)",
+    bgTint: "rgba(176,125,26,0.05)",
     badge: "CRUD",
     badgeClass: "badge-amber",
     stats: [{ icon: Activity, label: "Tables", key: null }],
@@ -113,12 +113,12 @@ const PANELS = [
     description:
       "Lightning-fast fuzzy search across all nations and conflicts. Press ⌘K anytime to open the command palette.",
     icon: Search,
-    gradient: "from-rose-400 via-pink-500 to-fuchsia-500",
-    shadowColor: "rgba(244,63,94,0.5)",
-    border: "rgba(244,63,94,0.35)",
-    bgTint: "rgba(244,63,94,0.07)",
+    gradient: "from-[#1f0a0a] to-[#7a1f1f]",
+    shadowColor: "rgba(192,57,43,0.30)",
+    border: "rgba(192,57,43,0.25)",
+    bgTint: "rgba(192,57,43,0.05)",
     badge: "⌘K",
-    badgeClass: "badge-rose",
+    badgeClass: "badge-danger",
     stats: [{ icon: ShieldAlert, label: "Conflicts", key: "conflicts" }],
   },
   {
@@ -129,12 +129,12 @@ const PANELS = [
     description:
       "Monthly predictive forecasts of political violence events globally. Powered by ACLED.",
     icon: TrendingUp,
-    gradient: "from-orange-400 via-orange-500 to-rose-500",
-    shadowColor: "rgba(249,115,22,0.5)",
-    border: "rgba(249,115,22,0.35)",
-    bgTint: "rgba(249,115,22,0.07)",
+    gradient: "from-[#3d1111] to-[#a61f1f]",
+    shadowColor: "rgba(192,57,43,0.28)",
+    border: "rgba(192,57,43,0.22)",
+    bgTint: "rgba(192,57,43,0.04)",
     badge: "CAST",
-    badgeClass: "badge-amber",
+    badgeClass: "badge-danger",
     stats: [{ icon: ShieldAlert, label: "Monitored", key: "countries" }],
   },
 ];
@@ -143,35 +143,35 @@ const PANELS = [
 const STAT_CONFIGS = [
   {
     key: "countries",
-    label: "Nations",
+    label: "Nations Tracked",
     icon: Globe2,
-    color: "text-violet-400",
-    glow: "bg-violet-500/15",
-    border: "border-violet-500/25",
+    color: "#60a5d8",
+    bgColor: "rgba(37,99,168,0.10)",
+    borderColor: "rgba(37,99,168,0.22)",
   },
   {
     key: "conflicts",
-    label: "Conflicts",
+    label: "Active Conflicts",
     icon: ShieldAlert,
-    color: "text-rose-400",
-    glow: "bg-rose-500/15",
-    border: "border-rose-500/25",
+    color: "#e87268",
+    bgColor: "rgba(192,57,43,0.10)",
+    borderColor: "rgba(192,57,43,0.22)",
   },
   {
     key: "alliances",
-    label: "Alliances",
+    label: "Alliance Records",
     icon: Activity,
-    color: "text-teal-400",
-    glow: "bg-teal-500/15",
-    border: "border-teal-500/25",
+    color: "#74bc60",
+    bgColor: "rgba(61,124,48,0.10)",
+    borderColor: "rgba(61,124,48,0.22)",
   },
   {
     key: "sanctions",
-    label: "Sanctions",
+    label: "Sanctions Orders",
     icon: Zap,
-    color: "text-amber-400",
-    glow: "bg-amber-500/15",
-    border: "border-amber-500/25",
+    color: "#e8b84b",
+    bgColor: "rgba(176,125,26,0.10)",
+    borderColor: "rgba(176,125,26,0.22)",
   },
 ];
 
@@ -203,19 +203,17 @@ export default function DashboardPage() {
 
   return (
     <main className="relative flex-1 flex flex-col overflow-x-hidden overflow-y-auto">
-      {/* ── Ambient background blobs ─────────────────────────────── */}
+      {/* ── Ambient vignette — restrained Prussian depth ────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
-        <Blob color="bg-violet-600/15" size="w-[700px] h-[700px]" style={{ top: "-10%", left: "-5%", animationDelay: "0s" }} />
-        <Blob color="bg-fuchsia-600/10" size="w-[500px] h-[500px]" style={{ top: "30%", right: "-8%", animationDelay: "2s" }} />
-        <Blob color="bg-teal-600/10" size="w-[600px] h-[600px]" style={{ bottom: "0%", left: "30%", animationDelay: "4s" }} />
-        <Blob color="bg-amber-600/6" size="w-[400px] h-[400px]" style={{ top: "60%", right: "20%" }} />
-        {/* Grid overlay */}
+        <Blob color="" size="w-[800px] h-[500px]" style={{ top: "-5%", left: "-10%", background: "radial-gradient(ellipse, rgba(37,99,168,0.08) 0%, transparent 70%)", animationDelay: "0s" }} />
+        <Blob color="" size="w-[600px] h-[400px]" style={{ bottom: "5%", right: "-5%", background: "radial-gradient(ellipse, rgba(37,99,168,0.05) 0%, transparent 70%)", animationDelay: "3s" }} />
+        {/* Topographic grid — sparse map-paper feel */}
         <div
-          className="absolute inset-0 opacity-[0.025]"
+          className="absolute inset-0 opacity-[0.018]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(139,92,246,1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,1) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
+              "linear-gradient(rgba(37,99,168,1) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,168,1) 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
           }}
         />
       </div>
@@ -229,42 +227,50 @@ export default function DashboardPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center flex flex-col items-center gap-4"
         >
-          {/* Badge */}
+          {/* Status badge — OPERATIONAL */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-semibold tracking-widest uppercase"
+            transition={{ duration: 0.35, delay: 0.1 }}
+            className="flex items-center gap-2.5 px-4 py-1.5 rounded text-xs font-semibold tracking-widest uppercase"
+            style={{
+              fontFamily: "var(--font-mono)",
+              background: "rgba(37,99,168,0.10)",
+              border: "1px solid rgba(37,99,168,0.28)",
+              color: "#60a5d8",
+            }}
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#60a5d8] opacity-60" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#2563a8]" />
             </span>
-            GGICAS — Intelligence Platform
+            GGICAS — System Operational
           </motion.div>
 
-          {/* Main title */}
+          {/* Main title — editorial weight, no gradient rainbow */}
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.18 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-none"
+            transition={{ duration: 0.50, delay: 0.18 }}
+            className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none"
+            style={{ fontFamily: "var(--font-sans)", letterSpacing: "-0.03em" }}
           >
             <span className="text-gradient-primary">Global Geopolitical</span>
             <br />
-            <span className="text-[#f0f0ff]">Intelligence</span>
+            <span style={{ color: "#e8edf4" }}>Intelligence</span>
           </motion.h1>
 
           {/* Subtitle */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.32 }}
-            className="max-w-2xl text-base md:text-lg text-[#a0a8d0] leading-relaxed"
+            transition={{ duration: 0.45, delay: 0.30 }}
+            className="max-w-2xl text-base md:text-lg leading-relaxed"
+            style={{ color: "#9baab8" }}
           >
-            Real-time conflict analysis, alliance mapping, sanctions intelligence,
+            Conflict analysis, alliance mapping, sanctions intelligence,
             and economic data across{" "}
-            <span className="text-violet-400 font-semibold">
+            <span style={{ color: "#60a5d8", fontWeight: 600 }}>
               <AnimatedCounter target={stats.countries} /> nations
             </span>{" "}
             worldwide.
@@ -278,19 +284,20 @@ export default function DashboardPage() {
           transition={{ duration: 0.5, delay: 0.42 }}
           className="flex flex-wrap justify-center gap-3"
         >
-          {STAT_CONFIGS.map(({ key, label, icon: Icon, color, glow, border }, i) => (
+          {STAT_CONFIGS.map(({ key, label, icon: Icon, color, bgColor, borderColor }, i) => (
             <motion.div
               key={key}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.38, delay: 0.48 + i * 0.07 }}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl border ${border} ${glow} backdrop-blur-md`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, delay: 0.44 + i * 0.06 }}
+              className="flex items-center gap-3 px-5 py-3 rounded-lg"
+              style={{ background: bgColor, border: `1px solid ${borderColor}` }}
             >
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className={`text-2xl font-black tabular-nums ${color}`}>
+              <Icon className="w-3.5 h-3.5" style={{ color, opacity: 0.85 }} />
+              <span className="text-xl font-bold tabular-nums" style={{ color, fontFamily: "var(--font-mono)" }}>
                 <AnimatedCounter target={stats[key as keyof typeof stats]} />
               </span>
-              <span className="text-xs text-[#a0a8d0] font-medium">{label}</span>
+              <span className="text-xs" style={{ color: "#566577", fontFamily: "var(--font-mono)", letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -460,9 +467,13 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.0 }}
-          className="glass-sm p-5"
+          className="p-5 rounded-lg"
+          style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}
         >
-          <p className="text-[10px] font-mono tracking-widest text-violet-400/70 uppercase mb-3">
+          <p
+            className="uppercase mb-3"
+            style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", letterSpacing: "0.12em", color: "#566577" }}
+          >
             Advanced Database Concepts Demonstrated
           </p>
           <div className="flex flex-wrap gap-2">
@@ -481,7 +492,15 @@ export default function DashboardPage() {
             ].map((c) => (
               <span
                 key={c}
-                className="px-3 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300/80 text-[10px] font-mono"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.65rem",
+                  background: "rgba(37,99,168,0.08)",
+                  border: "1px solid rgba(37,99,168,0.18)",
+                  color: "#566577",
+                  borderRadius: "4px",
+                  padding: "2px 10px",
+                }}
               >
                 {c}
               </span>

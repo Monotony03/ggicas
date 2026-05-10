@@ -26,12 +26,19 @@ function AnimatedCounter({ value, className = "" }: { value: number; className?:
 }
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard, gradient: "from-violet-500 to-fuchsia-500", active: "text-violet-300" },
-  { href: "/globe",     label: "Globe",     Icon: Globe2,          gradient: "from-teal-400 to-cyan-500",    active: "text-teal-300"   },
-  { href: "/analytics", label: "Analytics", Icon: BarChart3,       gradient: "from-teal-400 to-cyan-400",    active: "text-cyan-300"   },
-  { href: "/conflict-predictor", label: "Predictor", Icon: TrendingUp, gradient: "from-orange-400 to-rose-500", active: "text-orange-300" },
-  { href: "/admin",     label: "Admin",     Icon: Database,        gradient: "from-amber-400 to-orange-400", active: "text-amber-300"  },
+  { href: "/dashboard",          label: "Dashboard",  Icon: LayoutDashboard, accent: "prussian" },
+  { href: "/globe",              label: "Globe",      Icon: Globe2,          accent: "prussian" },
+  { href: "/analytics",         label: "Analytics",  Icon: BarChart3,       accent: "prussian" },
+  { href: "/conflict-predictor",label: "Predictor",  Icon: TrendingUp,      accent: "crimson"  },
+  { href: "/admin",             label: "Admin",      Icon: Database,        accent: "amber"    },
 ];
+
+/* Per-accent active text colors — drawn from our new palette */
+const ACCENT_COLORS: Record<string, string> = {
+  prussian: "#60a5d8",
+  crimson:  "#e87268",
+  amber:    "#e8b84b",
+};
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -62,87 +69,70 @@ export default function Navbar() {
     <header
       className={`sticky top-0 z-50 w-full h-14 shrink-0 flex items-center justify-between px-5 transition-all duration-300 ${
         scrolled
-          ? "bg-[#05061a]/90 backdrop-blur-2xl border-b border-white/[0.07] shadow-[0_4px_40px_rgba(0,0,0,0.4)]"
-          : "bg-[#05061a]/70 backdrop-blur-xl border-b border-white/[0.05]"
+          ? "bg-[#0a0e18]/95 backdrop-blur-xl border-b border-white/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.40)]"
+          : "bg-[#0a0e18]/80 backdrop-blur-md border-b border-white/[0.05]"
       }`}
     >
-      {/* ── Brand ─────────────────────────────────────────────── */}
+      {/* ── Brand Wordmark ──────────────────────────────────────────── */}
       <Link href="/dashboard" className="flex items-center gap-2.5 group select-none shrink-0">
+        {/* Logo mark — a simple sovereign blue circle, no glow */}
         <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110"
+          className="w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200 group-hover:brightness-110 shrink-0"
           style={{
-            background: "linear-gradient(135deg, #8b5cf6, #d946ef)",
-            boxShadow: "0 0 20px rgba(139,92,246,0.50)",
+            background: "linear-gradient(135deg, #163058, #2563a8)",
+            border: "1px solid rgba(37,99,168,0.50)",
+            boxShadow: "0 2px 8px rgba(10,14,24,0.60)",
           }}
         >
-          <Globe2 className="w-4 h-4 text-white" />
+          <Globe2 className="w-3.5 h-3.5 text-[#93c5e8]" />
         </div>
         <div className="leading-none">
           <span
-            className="block text-sm font-black tracking-tight"
-            style={{
-              background: "linear-gradient(135deg, #a78bfa, #e879f9)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
+            className="block text-sm font-semibold tracking-tight text-[#e8edf4]"
+            style={{ fontFamily: "var(--font-sans)", letterSpacing: "-0.01em" }}
           >
             GGICAS
           </span>
-          <span className="block text-[9px] text-violet-400/70 font-mono tracking-widest uppercase mt-0.5">
-            Geopolitical Intel
+          <span
+            className="block text-[9px] text-[#566577] tracking-widest uppercase mt-0.5"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            Intelligence Platform
           </span>
         </div>
       </Link>
 
-      {/* ── Nav links ──────────────────────────────────────────── */}
+      {/* ── Navigation ──────────────────────────────────────────────── */}
       <nav className="flex items-center gap-0.5 mx-4">
-        {NAV.map(({ href, label, Icon, gradient, active }) => {
+        {NAV.map(({ href, label, Icon, accent }) => {
           const isActive = pathname === href || (href === "/dashboard" && pathname === "/");
+          const activeColor = ACCENT_COLORS[accent];
           return (
             <Link
               key={href}
               href={href}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? active
-                  : "text-[#5a6490] hover:text-[#a0a8d0] hover:bg-white/[0.04]"
+                  ? "text-[#e8edf4]"
+                  : "text-[#566577] hover:text-[#9baab8] hover:bg-white/[0.04]"
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="nav-pill"
-                  className="absolute inset-0 rounded-lg"
+                  className="absolute inset-0 rounded-md"
                   style={{
-                    background: "rgba(255,255,255,0.06)",
+                    background: "rgba(255,255,255,0.055)",
                     border: "1px solid rgba(255,255,255,0.09)",
                   }}
-                  transition={{ type: "spring", damping: 26, stiffness: 280 }}
+                  transition={{ type: "spring", damping: 30, stiffness: 320 }}
                 />
               )}
-              {/* Gradient icon when active */}
-              <span className="relative z-10">
-                {isActive ? (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      background: `linear-gradient(135deg, ${
-                        gradient.includes("violet") ? "#a78bfa, #e879f9" :
-                        gradient.includes("teal") && gradient.includes("cyan") ? "#2dd4bf, #22d3ee" :
-                        gradient.includes("orange") ? "#f97316, #f43f5e" :
-                        gradient.includes("amber") ? "#fbbf24, #fb923c" :
-                        "#a78bfa, #2dd4bf"
-                      })`,
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      backgroundClip: "text",
-                    }}
-                  >
-                    <Icon className="w-3.5 h-3.5" style={{ color: "inherit" }} />
-                  </span>
-                ) : (
-                  <Icon className="w-3.5 h-3.5" />
-                )}
+              <span
+                className="relative z-10"
+                style={{ color: isActive ? activeColor : undefined }}
+              >
+                <Icon className="w-3.5 h-3.5" />
               </span>
               <span className="relative z-10 hidden sm:inline">{label}</span>
             </Link>
@@ -150,42 +140,56 @@ export default function Navbar() {
         })}
       </nav>
 
-      {/* ── Right: stats + search ──────────────────────────────── */}
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="hidden lg:flex items-center gap-3 text-[11px] font-mono">
+      {/* ── Right: intelligence digest + search ─────────────────────── */}
+      <div className="flex items-center gap-4 shrink-0">
+        {/* Live stats — styled like a dashboard ticker, not colorful badges */}
+        <div className="hidden lg:flex items-center gap-3" style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem" }}>
           <span className="flex items-center gap-1.5">
-            <Globe2 className="w-3 h-3 text-violet-400" />
-            <AnimatedCounter value={stats.countries} className="text-violet-300 font-semibold" />
-            <span className="text-[#5a6490]">nations</span>
+            <Globe2 className="w-3 h-3 text-[#566577]" />
+            <AnimatedCounter value={stats.countries} className="text-[#9baab8] font-semibold" />
+            <span className="text-[#566577]">nations</span>
           </span>
-          <span className="w-px h-3 bg-white/10" />
+          <span className="w-px h-3 bg-white/[0.08]" />
           <span className="flex items-center gap-1.5">
-            <ShieldAlert className="w-3 h-3 text-rose-400" />
-            <AnimatedCounter value={stats.conflicts} className="text-rose-300 font-semibold" />
-            <span className="text-[#5a6490]">conflicts</span>
+            <ShieldAlert className="w-3 h-3" style={{ color: "#e87268", opacity: 0.75 }} />
+            <span style={{ color: "#e87268" }}>
+              <AnimatedCounter value={stats.conflicts} className="font-semibold" />
+            </span>
+            <span className="text-[#566577]">conflicts</span>
           </span>
-          <span className="w-px h-3 bg-white/10" />
+          <span className="w-px h-3 bg-white/[0.08]" />
           <span className="flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-teal-400" />
-            <AnimatedCounter value={stats.alliances} className="text-teal-300 font-semibold" />
-            <span className="text-[#5a6490]">alliances</span>
+            <Activity className="w-3 h-3" style={{ color: "#74bc60", opacity: 0.75 }} />
+            <span style={{ color: "#74bc60" }}>
+              <AnimatedCounter value={stats.alliances} className="font-semibold" />
+            </span>
+            <span className="text-[#566577]">alliances</span>
           </span>
         </div>
 
+        {/* Search / Command palette button — functional, not flashy */}
         <button
           onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all duration-150 hover:bg-white/[0.06]"
           style={{
-            background: "rgba(139,92,246,0.1)",
-            border: "1px solid rgba(139,92,246,0.25)",
-            color: "#a78bfa",
+            fontFamily: "var(--font-mono)",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.09)",
+            color: "#9baab8",
           }}
           aria-label="Open search (Ctrl+K)"
           id="cmd-palette-trigger"
         >
-          <Search className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-violet-400/70">Search…</span>
-          <kbd className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 bg-violet-500/20 rounded text-[10px] leading-none text-violet-300">
+          <Search className="w-3.5 h-3.5" style={{ color: "#566577" }} />
+          <span className="hidden sm:inline text-[#566577]">Search…</span>
+          <kbd
+            className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] leading-none"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              color: "#566577",
+            }}
+          >
             <Command className="w-2.5 h-2.5" />K
           </kbd>
         </button>

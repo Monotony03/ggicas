@@ -454,11 +454,89 @@ const tradeData = [
   { a: 'IND', b: 'USA', year: 2010, volume: 48000000000 },
 ]
 
+/* ─── Arms Transfers ─────────────────────────────────────────────────────── */
+// Format: { exp: exporter ISO, imp: importer ISO, type: weapon type, year, tiv (Trend Indicator Value in millions) }
+const armsTransfersData = [
+  // ── Cold War era ────────────────────────────────────────────────────────
+  { exp: 'USA', imp: 'GBR',  type: 'Aircraft',            year: 1944, tiv: 1200 },
+  { exp: 'USA', imp: 'FRA',  type: 'Aircraft',            year: 1944, tiv:  900 },
+  { exp: 'SUN', imp: 'CHN',  type: 'Aircraft',            year: 1950, tiv:  780 },
+  { exp: 'SUN', imp: 'CHN',  type: 'Armored Vehicles',   year: 1951, tiv:  430 },
+  { exp: 'USA', imp: 'KOR',  type: 'Aircraft',            year: 1953, tiv:  620 },
+  { exp: 'USA', imp: 'KOR',  type: 'Armored Vehicles',   year: 1954, tiv:  340 },
+  { exp: 'SUN', imp: 'EGY',  type: 'Aircraft',            year: 1955, tiv:  490 },
+  { exp: 'SUN', imp: 'EGY',  type: 'Armored Vehicles',   year: 1956, tiv:  330 },
+  { exp: 'USA', imp: 'ISR',  type: 'Aircraft',            year: 1966, tiv:  880 },
+  { exp: 'USA', imp: 'ISR',  type: 'Missiles',            year: 1967, tiv:  540 },
+  { exp: 'SUN', imp: 'VNM',  type: 'Air Defense Systems', year: 1965, tiv:  410 },
+  { exp: 'SUN', imp: 'VNM',  type: 'Aircraft',            year: 1966, tiv:  370 },
+  { exp: 'USA', imp: 'VNM',  type: 'Aircraft',            year: 1968, tiv:  760 },
+  { exp: 'CHN', imp: 'VNM',  type: 'Artillery',           year: 1967, tiv:  220 },
+  { exp: 'USA', imp: 'SAU',  type: 'Aircraft',            year: 1971, tiv:  690 },
+  { exp: 'SUN', imp: 'IRQ',  type: 'Aircraft',            year: 1973, tiv:  580 },
+  { exp: 'SUN', imp: 'EGY',  type: 'Missiles',            year: 1973, tiv:  460 },
+  { exp: 'USA', imp: 'ISR',  type: 'Armored Vehicles',   year: 1973, tiv:  820 },
+  { exp: 'SUN', imp: 'AFG',  type: 'Aircraft',            year: 1979, tiv:  370 },
+  { exp: 'SUN', imp: 'AFG',  type: 'Armored Vehicles',   year: 1980, tiv:  490 },
+  { exp: 'USA', imp: 'PAK',  type: 'Aircraft',            year: 1981, tiv:  550 },
+  { exp: 'CHN', imp: 'PAK',  type: 'Aircraft',            year: 1982, tiv:  340 },
+  { exp: 'CHN', imp: 'PAK',  type: 'Missiles',            year: 1985, tiv:  280 },
+  { exp: 'SUN', imp: 'IND',  type: 'Aircraft',            year: 1980, tiv:  760 },
+  { exp: 'SUN', imp: 'IND',  type: 'Naval Weapons',       year: 1982, tiv:  510 },
+  // ── Post Cold War ────────────────────────────────────────────────────────
+  { exp: 'USA', imp: 'SAU',  type: 'Aircraft',            year: 1991, tiv: 1450 },
+  { exp: 'USA', imp: 'SAU',  type: 'Air Defense Systems', year: 1992, tiv:  890 },
+  { exp: 'USA', imp: 'ISR',  type: 'Aircraft',            year: 1994, tiv:  980 },
+  { exp: 'GBR', imp: 'SAU',  type: 'Aircraft',            year: 1995, tiv:  870 },
+  { exp: 'RUS', imp: 'IND',  type: 'Aircraft',            year: 1996, tiv: 1200 },
+  { exp: 'RUS', imp: 'CHN',  type: 'Aircraft',            year: 1996, tiv: 1100 },
+  { exp: 'RUS', imp: 'CHN',  type: 'Naval Weapons',       year: 1997, tiv:  760 },
+  { exp: 'FRA', imp: 'SAU',  type: 'Aircraft',            year: 1998, tiv:  640 },
+  { exp: 'USA', imp: 'KOR',  type: 'Aircraft',            year: 1999, tiv:  780 },
+  { exp: 'USA', imp: 'JPN',  type: 'Air Defense Systems', year: 1999, tiv:  620 },
+  // ── 2000s ────────────────────────────────────────────────────────────────
+  { exp: 'RUS', imp: 'IND',  type: 'Naval Weapons',       year: 2004, tiv: 1500 },
+  { exp: 'USA', imp: 'ISR',  type: 'Air Defense Systems', year: 2005, tiv:  840 },
+  { exp: 'USA', imp: 'SAU',  type: 'Armored Vehicles',   year: 2006, tiv:  920 },
+  { exp: 'CHN', imp: 'PAK',  type: 'Naval Weapons',       year: 2006, tiv:  680 },
+  { exp: 'RUS', imp: 'IND',  type: 'Aircraft',            year: 2007, tiv: 1800 },
+  { exp: 'USA', imp: 'AUS',  type: 'Aircraft',            year: 2007, tiv:  950 },
+  { exp: 'GBR', imp: 'SAU',  type: 'Aircraft',            year: 2008, tiv: 1100 },
+  { exp: 'RUS', imp: 'VNM',  type: 'Naval Weapons',       year: 2009, tiv:  730 },
+  // ── 2010s ────────────────────────────────────────────────────────────────
+  { exp: 'USA', imp: 'SAU',  type: 'Aircraft',            year: 2010, tiv: 2100 },
+  { exp: 'USA', imp: 'ISR',  type: 'Missiles',            year: 2011, tiv: 1250 },
+  { exp: 'RUS', imp: 'IND',  type: 'Air Defense Systems', year: 2012, tiv: 1600 },
+  { exp: 'USA', imp: 'KOR',  type: 'Air Defense Systems', year: 2013, tiv:  780 },
+  { exp: 'FRA', imp: 'IND',  type: 'Aircraft',            year: 2016, tiv: 3200 },
+  { exp: 'RUS', imp: 'TUR',  type: 'Air Defense Systems', year: 2017, tiv: 2500 },
+  { exp: 'USA', imp: 'SAU',  type: 'Missiles',            year: 2017, tiv: 1800 },
+  { exp: 'RUS', imp: 'IRN',  type: 'Air Defense Systems', year: 2017, tiv: 1200 },
+  { exp: 'CHN', imp: 'PAK',  type: 'Aircraft',            year: 2018, tiv: 1400 },
+  { exp: 'USA', imp: 'POL',  type: 'Air Defense Systems', year: 2018, tiv:  960 },
+  { exp: 'USA', imp: 'AUS',  type: 'Armored Vehicles',   year: 2019, tiv: 1100 },
+  { exp: 'RUS', imp: 'IND',  type: 'Aircraft',            year: 2019, tiv: 2100 },
+  // ── 2020s ────────────────────────────────────────────────────────────────
+  { exp: 'USA', imp: 'UKR',  type: 'Air Defense Systems', year: 2022, tiv: 3800 },
+  { exp: 'USA', imp: 'UKR',  type: 'Armored Vehicles',   year: 2022, tiv: 2200 },
+  { exp: 'GBR', imp: 'UKR',  type: 'Missiles',            year: 2022, tiv: 1450 },
+  { exp: 'DEU', imp: 'UKR',  type: 'Armored Vehicles',   year: 2023, tiv: 2800 },
+  { exp: 'USA', imp: 'ISR',  type: 'Aircraft',            year: 2023, tiv: 3400 },
+  { exp: 'USA', imp: 'ISR',  type: 'Missiles',            year: 2023, tiv: 2600 },
+  { exp: 'PRK', imp: 'RUS',  type: 'Artillery',           year: 2023, tiv: 1200 },
+  { exp: 'IRN', imp: 'RUS',  type: 'Missiles',            year: 2023, tiv:  980 },
+  { exp: 'USA', imp: 'POL',  type: 'Armored Vehicles',   year: 2024, tiv: 1600 },
+  { exp: 'USA', imp: 'KOR',  type: 'Missiles',            year: 2024, tiv:  840 },
+  { exp: 'GBR', imp: 'SAU',  type: 'Aircraft',            year: 2024, tiv: 1900 },
+  { exp: 'FRA', imp: 'IND',  type: 'Naval Weapons',       year: 2024, tiv: 2400 },
+]
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════════════ */
 async function main() {
   console.log('🗑️  Clearing database...')
+  await prisma.armsTransfer.deleteMany()
   await prisma.tradeRelation.deleteMany()
   await prisma.sanction.deleteMany()
   await prisma.conflictInvolvement.deleteMany()
@@ -569,6 +647,23 @@ async function main() {
         countryBId: idB,
         year: t.year,
         tradeVolumeUsd: t.volume,
+      }
+    })
+  }
+
+  // ── Arms Transfers
+  console.log('🚀 Creating arms transfers...')
+  for (const at of armsTransfersData) {
+    const exporterId = cMap.get(at.exp)
+    const importerId = cMap.get(at.imp)
+    if (!exporterId || !importerId) { console.warn(`  Skip arms transfer ${at.exp}→${at.imp}`); continue }
+    await prisma.armsTransfer.create({
+      data: {
+        exporterId,
+        importerId,
+        weaponType: at.type,
+        year: at.year,
+        volumeTIV: at.tiv,
       }
     })
   }

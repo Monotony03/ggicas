@@ -94,51 +94,59 @@ export default function CommandPalette() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[100] flex items-start justify-center pt-[14vh] px-4"
-          style={{ background: "rgba(5,6,26,0.75)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(10,14,24,0.80)", backdropFilter: "blur(10px)" }}
           onClick={() => setOpen(false)}
         >
           <motion.div
             key="cp-panel"
-            initial={{ opacity: 0, scale: 0.94, y: -16 }}
+            initial={{ opacity: 0, scale: 0.96, y: -12 }}
             animate={{ opacity: 1, scale: 1,    y: 0    }}
-            exit={{   opacity: 0, scale: 0.94,  y: -16  }}
-            transition={{ type: "spring", damping: 28, stiffness: 340 }}
+            exit={{   opacity: 0, scale: 0.96,  y: -12  }}
+            transition={{ type: "spring", damping: 30, stiffness: 340 }}
             className="w-full max-w-xl overflow-hidden"
             style={{
-              background: "rgba(12,10,30,0.95)",
-              border: "1px solid rgba(139,92,246,0.30)",
-              borderRadius: "1.25rem",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.12) inset, 0 1px 0 rgba(255,255,255,0.06) inset",
+              background: "#111827",
+              border: "1px solid rgba(255,255,255,0.10)",
+              borderRadius: "0.75rem",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.60), 0 0 0 1px rgba(37,99,168,0.10) inset, 0 1px 0 rgba(255,255,255,0.05) inset",
             }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Top gradient strip */}
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-violet-500/60 to-transparent" />
+            {/* Top accent strip — Prussian blue, not rainbow */}
+            <div className="h-px w-full" style={{ background: "linear-gradient(90deg, transparent, rgba(37,99,168,0.70) 40%, rgba(37,99,168,0.70) 60%, transparent)" }} />
 
             {/* Input row */}
-            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.06]">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(217,70,239,0.25))", border: "1px solid rgba(139,92,246,0.3)" }}>
-                <Search className="w-3.5 h-3.5 text-violet-400" />
+            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.07]">
+              <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: "rgba(37,99,168,0.15)", border: "1px solid rgba(37,99,168,0.28)" }}>
+                <Search className="w-3.5 h-3.5" style={{ color: "#60a5d8" }} />
               </div>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={onKey}
-                placeholder={dataReady ? "Search nations, conflicts…" : "Loading intelligence data…"}
+                placeholder={dataReady ? "Search nations, conflicts, ISO codes…" : "Loading intelligence data…"}
                 disabled={!dataReady}
-                className="flex-1 bg-transparent text-[#f0f0ff] placeholder-[#5a6490] text-sm outline-none"
-                style={{ fontFamily: "inherit" }}
+                className="flex-1 bg-transparent text-[#e8edf4] placeholder-[#566577] text-sm outline-none"
+                style={{ fontFamily: "var(--font-sans)" }}
                 id="command-palette-input"
               />
-              {!dataReady && <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin shrink-0" />}
+              {!dataReady && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" style={{ color: "#60a5d8" }} />}
               {query && (
-                <button onClick={() => setQuery("")} className="text-[#5a6490] hover:text-[#a0a8d0] transition-colors">
+                <button onClick={() => setQuery("")} className="text-[#566577] hover:text-[#9baab8] transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <kbd className="px-1.5 py-0.5 bg-violet-500/15 border border-violet-500/25 rounded text-[10px] text-violet-400 font-mono shrink-0">
+              <kbd
+                className="px-1.5 py-0.5 rounded text-[10px] shrink-0"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  color: "#566577",
+                }}
+              >
                 ESC
               </kbd>
             </div>
@@ -146,18 +154,18 @@ export default function CommandPalette() {
             {/* Results list */}
             {results.length > 0 && (
               <div className="py-2 max-h-72 overflow-y-auto">
-                {/* Section labels */}
                 {results.some(r => r.kind === "country") && (
-                  <p className="px-4 py-1 text-[10px] font-mono tracking-widest text-[#5a6490] uppercase">Nations</p>
+                  <p className="px-4 py-1 text-[10px] tracking-widest text-[#566577] uppercase" style={{ fontFamily: "var(--font-mono)" }}>
+                    Nations
+                  </p>
                 )}
                 {results.map((r, i) => {
-                  /* Insert "Conflicts" heading before first conflict result */
                   const prevIsCountry = i > 0 && results[i - 1].kind === "country";
                   const isFirstConflict = r.kind === "conflict" && (i === 0 || prevIsCountry);
                   return (
                     <div key={`${r.kind}-${r.item.id}`}>
                       {isFirstConflict && (
-                        <p className="px-4 pt-2 pb-1 text-[10px] font-mono tracking-widest text-[#5a6490] uppercase border-t border-white/[0.04]">
+                        <p className="px-4 pt-2 pb-1 text-[10px] tracking-widest text-[#566577] uppercase border-t border-white/[0.05]" style={{ fontFamily: "var(--font-mono)" }}>
                           Conflicts
                         </p>
                       )}
@@ -165,31 +173,31 @@ export default function CommandPalette() {
                         onClick={() => pick(r)}
                         onMouseEnter={() => setSelected(i)}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors duration-100 ${
-                          i === selected ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                          i === selected ? "bg-white/[0.05]" : "hover:bg-white/[0.03]"
                         }`}
                       >
                         <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150"
+                          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
                           style={
                             r.kind === "country"
-                              ? { background: "rgba(139,92,246,0.2)", border: "1px solid rgba(139,92,246,0.3)" }
-                              : { background: "rgba(244,63,94,0.2)",  border: "1px solid rgba(244,63,94,0.3)"  }
+                              ? { background: "rgba(37,99,168,0.18)",  border: "1px solid rgba(37,99,168,0.30)" }
+                              : { background: "rgba(192,57,43,0.18)", border: "1px solid rgba(192,57,43,0.30)" }
                           }
                         >
                           {r.kind === "country"
-                            ? <Globe2 className="w-4 h-4 text-violet-400" />
-                            : <Swords className="w-4 h-4 text-rose-400"   />}
+                            ? <Globe2 className="w-3.5 h-3.5" style={{ color: "#60a5d8" }} />
+                            : <Swords className="w-3.5 h-3.5" style={{ color: "#e87268" }} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#f0f0ff] truncate">{r.item.name}</p>
-                          <p className="text-xs text-[#5a6490]">
+                          <p className="text-sm font-medium text-[#e8edf4] truncate">{r.item.name}</p>
+                          <p className="text-xs text-[#566577]" style={{ fontFamily: "var(--font-mono)" }}>
                             {r.kind === "country"
                               ? `${(r.item as Country).isoCode} · ${(r.item as Country).region}`
                               : `Conflict · ${(r.item as Conflict).type}`}
                           </p>
                         </div>
                         {i === selected && (
-                          <div className="flex items-center gap-1 text-[11px] font-medium text-violet-400 shrink-0">
+                          <div className="flex items-center gap-1 text-[11px] font-medium shrink-0" style={{ color: "#60a5d8" }}>
                             <span>Open</span>
                             <ArrowRight className="w-3 h-3" />
                           </div>
@@ -203,20 +211,22 @@ export default function CommandPalette() {
 
             {query && results.length === 0 && (
               <div className="py-12 text-center">
-                <p className="text-[#5a6490] text-sm">
+                <p className="text-sm" style={{ color: "#566577" }}>
                   No results for{" "}
-                  <span className="text-violet-300 font-medium">"{query}"</span>
+                  <span className="font-medium" style={{ color: "#9baab8" }}>&ldquo;{query}&rdquo;</span>
                 </p>
-                <p className="text-[10px] text-[#3a4060] mt-1">Try a country name, ISO code, or conflict type</p>
+                <p className="text-[10px] mt-1" style={{ color: "#38485a", fontFamily: "var(--font-mono)" }}>
+                  Try a country name, ISO code, or conflict type
+                </p>
               </div>
             )}
 
-            {/* Footer hints */}
+            {/* Footer */}
             <div className="px-4 py-2.5 flex items-center justify-between border-t border-white/[0.05]">
-              <span className="text-[10px] text-[#3a4060] font-mono">
+              <span className="text-[10px] text-[#38485a]" style={{ fontFamily: "var(--font-mono)" }}>
                 ↑↓ navigate · Enter select · Esc close
               </span>
-              <span className="text-[10px] text-[#3a4060] font-mono">
+              <span className="text-[10px] text-[#38485a]" style={{ fontFamily: "var(--font-mono)" }}>
                 {allCountries.length} nations · {allConflicts.length} conflicts
               </span>
             </div>

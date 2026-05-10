@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { ComposableMap, Geographies, Geography, Sphere, Graticule, Marker, Line } from "react-simple-maps";
 import { AnimatePresence, motion } from "framer-motion";
 import axios from "axios";
-import { X, Search, Swords, Handshake, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { X, Search, Swords, Handshake, ZoomIn, ZoomOut, RotateCcw, Rocket } from "lucide-react";
 import { geoCentroid } from "d3-geo";
 // @ts-ignore
 import * as topojson from "topojson-client";
@@ -15,6 +15,7 @@ const topoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
 interface Country { id: string; name: string; isoCode: string; region: string; gdpCurrentUsd?: number | null; militaryBudget?: number | null; leaders?: Array<{ name: string; title: string }>; }
 interface Alliance { id: string; countryAId: string; countryBId: string | null; organizationId: string | null; allianceType: string; motivation?: string; countryA: Country; countryB?: Country; }
 interface Conflict { id: string; name: string; type: string; cause?: string; participants: Array<{ role: string; country: Country }>; }
+interface ArmsTransfer { id: string; exporterId: string; importerId: string; exporter: { name: string; isoCode: string }; importer: { name: string; isoCode: string }; weaponType: string; volumeTIV: number | null; }
 
 function fmtMoney(v: number | null | undefined) {
   if (v == null) return "N/A";
@@ -34,7 +35,9 @@ export default function GlobeMap() {
   const [countries, setCountries]   = useState<Country[]>([]);
   const [alliances, setAlliances]   = useState<Alliance[]>([]);
   const [conflicts, setConflicts]   = useState<Conflict[]>([]);
+  const [armsTransfers, setArmsTransfers] = useState<ArmsTransfer[]>([]);
   const [year, setYear]             = useState<number>(2024);
+  const [weaponFilter, setWeaponFilter] = useState<string>("All");
   const [tooltip, setTooltip]       = useState<string>("");
   const [mousePos, setMousePos]     = useState<[number, number]>([0, 0]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -97,6 +100,7 @@ export default function GlobeMap() {
     axios.get(`/api/countries?year=${year}`).then(r => setCountries(r.data.data ?? r.data));
     axios.get(`/api/alliances?year=${year}`).then(r => setAlliances(r.data.data ?? r.data));
     axios.get(`/api/conflicts?year=${year}`).then(r => setConflicts(r.data.data ?? r.data));
+    axios.get(`/api/arms-trade?year=${year}`).then(r => setArmsTransfers(r.data.data ?? r.data));
   }, [year]);
 
   const currentSelectedData = useMemo(() => {
@@ -134,6 +138,30 @@ export default function GlobeMap() {
     });
     return Array.from(targets.entries()).map(([id, v]) => ({ id, from: myCoords, to: v.coords, label: v.name, conflict: v.conflict }));
   }, [selectedCountry, conflicts, countryCoords]);
+
+  const armsArrows = useMemo(() => {
+    if (weaponFilter !== "All") {
+      // Global weapon mode
+      return armsTransfers.filter(a => a.weaponType === weaponFilter).map(a => {
+        const fromCoords = countryCoords[a.exporter.name];
+        const toCoords = countryCoords[a.importer.name];
+        if (!fromCoords || !toCoords) return null;
+        return { id: a.id, from: fromCoords, to: toCoords, label: `${a.exporter.name} → ${a.importer.name}`, weaponType: a.weaponType, volume: a.volumeTIV };
+      }).filter(Boolean) as any[];
+    }
+
+    if (!selectedCountry) return [];
+    const myId = selectedCountry.id;
+    const myCoords = countryCoords[selectedCountry.name];
+    if (!myCoords) return [];
+    return armsTransfers.filter(a => a.exporterId === myId || a.importerId === myId).map(a => {
+      const isExport = a.exporterId === myId;
+      const partnerName = isExport ? a.importer.name : a.exporter.name;
+      const pc = countryCoords[partnerName];
+      if (!pc) return null;
+      return { id: a.id, from: isExport ? myCoords : pc, to: isExport ? pc : myCoords, label: partnerName, weaponType: a.weaponType, volume: a.volumeTIV, isExport };
+    }).filter(Boolean) as any[];
+  }, [selectedCountry, armsTransfers, countryCoords, weaponFilter]);
 
   /* Search */
   const searchResults = useMemo(() => {
@@ -178,9 +206,9 @@ export default function GlobeMap() {
     <div className="flex-1 flex flex-col items-center justify-center relative font-sans overflow-hidden">
 
       {/* ── Timeline + Search Panel ── */}
-      <div className="absolute top-4 left-4 p-5 bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-20 w-72">
-        <h2 className="text-base font-bold text-white mb-0.5">Timeline Explorer</h2>
-        <p className="text-xs text-slate-500 mb-4">Scroll globe to zoom · Click to inspect</p>
+      <div className="absolute top-4 left-4 p-5 bg-[#0d1120]/85 backdrop-blur-xl border border-white/[0.09] rounded-xl shadow-2xl z-20 w-72" style={{ fontFamily: "var(--font-sans)" }}>
+        <h2 className="text-sm font-semibold text-[#e8edf4] mb-0.5" style={{ fontFamily: "var(--font-sans)" }}>Timeline Explorer</h2>
+        <p className="text-xs mb-4" style={{ color: "#566577", fontFamily: "var(--font-mono)" }}>Scroll to zoom · Click to inspect</p>
 
         {/* Search */}
         <div className="relative mb-4">
@@ -206,35 +234,61 @@ export default function GlobeMap() {
           )}
         </div>
 
-        {/* Legend */}
-        <div className="flex gap-4 mb-4 text-xs text-slate-400">
+        {/* Weapon Dropdown */}
+        <div className="mb-4 flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-widest font-semibold mb-1 block" style={{ color: "#566577", fontFamily: "var(--font-mono)" }}>Weapon System Filter</label>
+          <select
+            value={weaponFilter}
+            onChange={(e) => { setWeaponFilter(e.target.value); setSelectedCountry(null); }}
+            className="w-full text-xs rounded-md text-[#e8edf4] p-2 outline-none cursor-pointer"
+            style={{ background: "rgba(22,48,88,0.60)", border: "1px solid rgba(37,99,168,0.30)", fontFamily: "var(--font-sans)" }}
+          >
+            <option value="All">All Weapons (Select Country)</option>
+            <option value="Aircraft">Aircraft</option>
+            <option value="Missiles">Missiles</option>
+            <option value="Armored Vehicles">Armored Vehicles</option>
+            <option value="Naval Weapons">Naval Weapons</option>
+            <option value="Air Defense Systems">Air Defense Systems</option>
+            <option value="Artillery">Artillery</option>
+          </select>
+        </div>
+
+        <div className="flex flex-wrap gap-3 mb-4 text-xs" style={{ color: "#566577" }}>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-0.5 bg-emerald-400" /><span>Alliance</span>
+            <div className="w-5 h-0.5" style={{ background: "#52a040" }} /><span>Alliance</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-0.5 bg-amber-400" /><span>Conflict</span>
+            <div className="w-5 h-0.5" style={{ background: "#dc4b3a" }} /><span>Conflict</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-0.5" style={{ background: "#d4972a" }} /><span>Arms Trade</span>
           </div>
         </div>
 
         {/* Year slider */}
         <input type="range" min="1940" max="2024" value={year}
           onChange={e => setYear(Number(e.target.value))}
-          className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
-        <div className="flex justify-between text-xs text-slate-400 font-mono mt-1">
+          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+          style={{ background: "rgba(37,99,168,0.25)", accentColor: "#2563a8" }} />
+        <div className="flex justify-between text-xs font-mono mt-1" style={{ color: "#566577" }}>
           <span>1940</span>
-          <span className="text-indigo-400 font-bold text-base -mt-1">{year}</span>
+          <span className="font-bold text-base -mt-1" style={{ color: "#60a5d8" }}>{year}</span>
           <span>2024</span>
         </div>
 
         {selectedCountry && (
-          <div className="mt-3 pt-3 border-t border-white/10 text-xs text-slate-400 space-y-1">
-            <div className="flex items-center gap-2 text-emerald-400">
+          <div className="mt-3 pt-3 border-t border-white/[0.07] text-xs space-y-1" style={{ color: "#566577" }}>
+            <div className="flex items-center gap-2" style={{ color: "#52a040" }}>
               <Handshake className="w-3 h-3" />
               <span>{allianceArrows.length} alliance{allianceArrows.length !== 1 ? "s" : ""}</span>
             </div>
-            <div className="flex items-center gap-2 text-amber-400">
+            <div className="flex items-center gap-2" style={{ color: "#dc4b3a" }}>
               <Swords className="w-3 h-3" />
               <span>{conflictArrows.length} conflict connection{conflictArrows.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ color: "#d4972a" }}>
+              <Rocket className="w-3 h-3" />
+              <span>{armsArrows.length} arms transfer{armsArrows.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
         )}
@@ -340,6 +394,26 @@ export default function GlobeMap() {
                     );
                   })}
             </div>
+
+            <div>
+              <h3 className="text-xs uppercase tracking-wider text-cyan-400 font-bold mb-2 border-b border-cyan-500/20 pb-1.5 flex items-center gap-1.5">
+                 <Rocket className="w-3.5 h-3.5" /> Arms Transfers
+              </h3>
+              {armsArrows.filter(a => a.isExport !== undefined).length === 0
+                ? <p className="text-xs text-slate-500 italic">No transfers on record.</p>
+                : armsArrows.filter(a => a.isExport !== undefined).map(a => (
+                    <div key={a.id} className="text-xs mb-2">
+                      <div className="font-semibold text-white">
+                        {a.isExport ? <span className="text-cyan-400 font-mono">EXPORT → </span> : <span className="text-fuchsia-400 font-mono">IMPORT ← </span>}
+                        {a.label}
+                      </div>
+                      <div className="text-slate-400 mt-0.5 border-l-2 border-cyan-500/30 pl-2">
+                        {a.weaponType} {a.volume ? `(TIV: ${a.volume})` : ''}
+                      </div>
+                    </div>
+                  ))
+              }
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -352,10 +426,11 @@ export default function GlobeMap() {
         </div>
       )}
 
-      {/* ── Globe ── */}
+      {/* Globe container — atmospheric Prussian blue outer glow */}
       <div
         ref={globeRef}
-        className={`w-full max-w-4xl aspect-square rounded-full overflow-hidden border border-white/5 shadow-[0_0_100px_rgba(0,255,65,0.12)] flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`w-full max-w-4xl aspect-square rounded-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        style={{ border: "1px solid rgba(37,99,168,0.15)", boxShadow: "0 0 80px rgba(37,99,168,0.10), 0 0 200px rgba(10,14,24,0.60)" }}
         onMouseDown={onMouseDown}
         onMouseMove={e => { onMouseMove(e); setMousePos([e.clientX, e.clientY]); }}
         onMouseUp={onMouseUp}
@@ -369,14 +444,17 @@ export default function GlobeMap() {
           className="w-full h-full pointer-events-none">
           <defs>
             <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L8,3 z" fill="#00ff41" opacity="0.95" />
+              <path d="M0,0 L0,6 L8,3 z" fill="#52a040" opacity="0.90" />
             </marker>
             <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L8,3 z" fill="#ffb000" opacity="0.95" />
+              <path d="M0,0 L0,6 L8,3 z" fill="#c0392b" opacity="0.90" />
+            </marker>
+            <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L8,3 z" fill="#b07d1a" opacity="0.90" />
             </marker>
           </defs>
-          <Sphere stroke="#1e2d1e" strokeWidth={1} id="sphere" fill="#080c14" />
-          <Graticule stroke="#1e2d1e" strokeWidth={0.35} />
+          <Sphere stroke="#111d30" strokeWidth={0.8} id="sphere" fill="#0a0e1a" />
+          <Graticule stroke="rgba(37,99,168,0.12)" strokeWidth={0.3} />
 
           {topology && (
             <Geographies geography={topology}>
@@ -384,10 +462,10 @@ export default function GlobeMap() {
                 const isSel = selectedCountry && geo.properties.name === selectedCountry.name;
                 return (
                   <Geography key={geo.rsmKey} geography={geo}
-                    fill={isSel ? "#2d4a20" : "#1a2332"} stroke="#253040" strokeWidth={0.4}
+                    fill={isSel ? "#1e4272" : "#131d2e"} stroke="#1e2d40" strokeWidth={0.4}
                     style={{
                       default: { outline: "none" },
-                      hover:   { fill: isSel ? "#3a5f28" : "#243044", outline: "none", transition: "fill 0.15s" },
+                      hover:   { fill: isSel ? "#2563a8" : "#1a2a40", outline: "none", transition: "fill 0.15s" },
                       pressed: { outline: "none" },
                     }}
                     className="pointer-events-auto"
@@ -405,18 +483,26 @@ export default function GlobeMap() {
           )}
 
           {allianceArrows.map(a => (
-            <Line key={`ally-${a.id}`} from={a.from} to={a.to} stroke="#00ff41" strokeWidth={2.5}
+            <Line key={`ally-${a.id}`} from={a.from} to={a.to} stroke="#3d7c30" strokeWidth={2.0}
               strokeLinecap="round" markerEnd="url(#arrow-green)"
               // @ts-ignore
-              style={{ filter: "drop-shadow(0 0 5px rgba(0,255,65,0.8))", opacity: 0.85 }}
+              style={{ filter: "drop-shadow(0 0 3px rgba(61,124,48,0.60))", opacity: 0.80 }}
               className="pointer-events-none" />
           ))}
 
           {conflictArrows.map(a => (
-            <Line key={`cf-${a.id}`} from={a.from} to={a.to} stroke="#ffb000" strokeWidth={2.5}
-              strokeLinecap="round" markerEnd="url(#arrow-amber)" strokeDasharray="6 3"
+            <Line key={`cf-${a.id}`} from={a.from} to={a.to} stroke="#c0392b" strokeWidth={2.0}
+              strokeLinecap="round" markerEnd="url(#arrow-amber)" strokeDasharray="5 3"
               // @ts-ignore
-              style={{ filter: "drop-shadow(0 0 7px rgba(255,176,0,0.9))", opacity: 0.85 }}
+              style={{ filter: "drop-shadow(0 0 4px rgba(192,57,43,0.70))", opacity: 0.80 }}
+              className="pointer-events-none" />
+          ))}
+
+          {armsArrows.map(a => (
+            <Line key={`arms-${a.id}`} from={a.from} to={a.to} stroke="#b07d1a" strokeWidth={1.8}
+              strokeLinecap="round" markerEnd="url(#arrow-cyan)"
+              // @ts-ignore
+              style={{ filter: "drop-shadow(0 0 3px rgba(176,125,26,0.65))", opacity: weaponFilter !== "All" ? 0.55 : 0.78 }}
               className="pointer-events-none" />
           ))}
 
@@ -426,21 +512,22 @@ export default function GlobeMap() {
             const isSel    = selectedCountry?.id === country.id;
             const hasAlly  = allianceArrows.some(a => a.label === country.name);
             const hasCf    = conflictArrows.some(a => a.label === country.name);
-            const dotColor = isSel ? "#00ff41" : hasAlly ? "#4ade80" : hasCf ? "#ffb000" : "#334155";
+            const hasArms  = armsArrows.some(a => a.label?.includes(country.name) || weaponFilter !== "All" && (a.from === coords || a.to === coords));
+            const dotColor = isSel ? "#3b82c4" : hasAlly ? "#52a040" : hasCf ? "#c0392b" : hasArms ? "#d4972a" : "#263348";
             return (
               <Marker key={`m-${country.id}`} coordinates={coords} className="pointer-events-auto">
-                {isSel && <circle r={18} fill="#00ff41" opacity={0.12} className="animate-ping pointer-events-none" />}
+                {isSel && <circle r={16} fill="#2563a8" opacity={0.12} className="animate-ping pointer-events-none" />}
                 {(hasAlly || hasCf) && !isSel && (
-                  <circle r={10} fill={hasAlly ? "#10b981" : "#ef4444"} opacity={0.18} className="pointer-events-none" />
+                  <circle r={9} fill={hasAlly ? "#3d7c30" : "#a61f1f"} opacity={0.20} className="pointer-events-none" />
                 )}
-                <circle r={isSel ? 7 : (hasAlly || hasCf) ? 5 : 3.5} fill={dotColor}
-                  className="drop-shadow-[0_0_6px_rgba(79,70,229,0.8)] cursor-pointer transition-all duration-150"
+                <circle r={isSel ? 7 : (hasAlly || hasCf || hasArms) ? 4.5 : 3} fill={dotColor}
+                  className="cursor-pointer transition-all duration-150"
                   onClick={() => !isDragging && setSelectedCountry(p => p?.id === country.id ? null : country)}
                   onMouseEnter={() => setTooltip(country.name)}
                   onMouseLeave={() => setTooltip("")} />
-                <text textAnchor="middle" y={isSel ? -18 : -10}
-                  style={{ fontFamily: "ui-sans-serif,system-ui", fill: isSel ? "#00ff41" : hasAlly ? "#86efac" : hasCf ? "#ffb000" : "#94a3b8",
-                    fontSize: isSel ? "12px" : "9px", fontWeight: isSel ? 800 : 600, pointerEvents: "none" }}>
+                <text textAnchor="middle" y={isSel ? -16 : -9}
+                  style={{ fontFamily: "var(--font-mono)", fill: isSel ? "#60a5d8" : hasAlly ? "#a8d898" : hasCf ? "#e87268" : hasArms ? "#e8b84b" : "#566577",
+                    fontSize: isSel ? "11px" : "8px", fontWeight: isSel ? 700 : 500, pointerEvents: "none" }}>
                   {country.name}
                 </text>
               </Marker>
