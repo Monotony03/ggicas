@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GGICAS Project Breakdown</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px; }
+        h2 { color: #2c5282; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        h3 { color: #2b6cb0; }
+        code { background: #f7fafc; padding: 2px 4px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        pre { background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; overflow-x: auto; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .section { margin-bottom: 40px; }
+    </style>
+</head>
+<body>
+    <h1>GGICAS: Project Breakdown & Technical Documentation</h1>
+
+    <div class="section">
+        <h2>1. Project Overview</h2>
+        <p><strong>GGICAS</strong> (Geopolitical Intelligence & Conflict Analysis System) is a high-fidelity intelligence platform designed for geopolitical risk assessment, conflict tracking, and predictive analytics. It integrates diverse datasets—including arms trade, military budgets, and conflict forecasts—into a unified, visually immersive interface.</p>
+    </div>
+
+    <div class="section">
+        <h2>2. Frameworks & Main Technologies</h2>
+        <h3>Frontend (User Interface)</h3>
+        <ul>
+            <li><strong>Framework</strong>: Next.js (App Router architecture)</li>
+            <li><strong>Library</strong>: React 19</li>
+            <li><strong>Styling</strong>: Tailwind CSS 4 for modern, utility-first styling.</li>
+            <li><strong>Animations</strong>: Framer Motion for smooth transitions and interactive UI elements.</li>
+            <li><strong>Icons</strong>: Lucide React for a consistent, professional icon set.</li>
+        </ul>
+
+        <h3>Backend (Data & Logic)</h3>
+        <ul>
+            <li><strong>API Layer</strong>: Next.js Server Components and Route Handlers (API Routes).</li>
+            <li><strong>ORM</strong>: Prisma for type-safe database access.</li>
+            <li><strong>Database</strong>: SQLite (local development/testing).</li>
+            <li><strong>Data Fetching</strong>: Axios for handling external API integrations (ACLED/CAST).</li>
+        </ul>
+
+        <h3>Data Visualization</h3>
+        <ul>
+            <li><strong>Mapping</strong>: React Simple Maps, D3-geo, and TopoJSON for cartographic intelligence.</li>
+            <li><strong>Charting</strong>: Recharts for interactive data analytics (line, bar, pie, and radar charts).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Project Structure</h2>
+        <pre>
+ggicas/
+├── prisma/                 # Database configuration & Seeding
+│   ├── schema.prisma       # Core data models (Country, Conflict, etc.)
+│   └── seed-excel.ts       # Script for seeding the DB from Excel
+├── src/
+│   ├── app/                # Main application routes
+│   │   ├── analytics/      # Geopolitical data visualizations
+│   │   ├── conflict-predictor/ # Predictive analytics dashboard
+│   │   ├── globe/          # Interactive cartographic map
+│   │   └── api/            # Backend endpoints
+│   ├── components/         # Reusable UI components
+│   ├── lib/                # Core logic & shared utilities
+│   │   ├── data-pipelines/ # Sync scripts (ACLED, SIPRI)
+│   │   └── prisma.ts       # Prisma client
+│   └── data/               # Local JSON datasets & topologies
+        </pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Backend & Database Architecture</h2>
+        <p>The backend is built on a highly relational schema:</p>
+        <ul>
+            <li><strong>Geopolitical Entities</strong>: Country, Leader, Organization.</li>
+            <li><strong>Conflict Tracking</strong>: Conflict, ConflictInvolvement (mapping roles).</li>
+            <li><strong>Economic Links</strong>: TradeRelation, ArmsTransfer (tracking SIPRI TIV).</li>
+            <li><strong>Predictive Analytics</strong>: ConflictForecast (ACLED integration).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Main Techniques & Advanced Implementation</h2>
+        <h3>Data Pipelines</h3>
+        <p>The system uses automated pipelines (<code>acledSync.ts</code>) to ingest data from external APIs and Excel files using the <code>xlsx</code> library.</p>
+        
+        <h3>Intelligence Cartography</h3>
+        <p>Combines React Simple Maps with custom D3 projections to render choropleth maps visualizing military spending and conflict risk.</p>
+        
+        <h3>Modern UI Design</h3>
+        <p>Implements a "Intelligence Cartography" aesthetic with Glassmorphism, Prussian Navy color palettes, and a responsive glass-morphic dashboard.</p>
+    </div>
+</body>
+</html>

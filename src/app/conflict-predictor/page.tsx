@@ -5,7 +5,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { TrendingUp, RefreshCw, AlertTriangle, ArrowUpRight, ArrowDownRight, Minus, Filter, Map, Calendar } from "lucide-react";
+import { TrendingUp, RefreshCw, AlertTriangle, ArrowUpRight, ArrowDownRight, Minus, Filter, Map, Calendar, ShieldCheck, Info, ShieldAlert, Shield } from "lucide-react";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -69,6 +69,14 @@ export default function ConflictPredictorPage() {
   const totals = useMemo(() => {
     return data.reduce((acc, curr) => acc + curr.expectedCase, 0);
   }, [data]);
+
+  // Safety Status Logic
+  const getSafetyStatus = (expected: number) => {
+    if (expected > 1000) return { label: "Extreme Risk", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20", icon: <ShieldAlert className="w-3 h-3" />, desc: "Severe conflict and high violence levels predicted." };
+    if (expected > 500) return { label: "High Risk", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20", icon: <AlertTriangle className="w-3 h-3" />, desc: "Significant volatility and unrest expected." };
+    if (expected > 200) return { label: "Moderate Risk", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", icon: <Shield className="w-3 h-3" />, desc: "Localized instability and protests likely." };
+    return { label: "Low Risk", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: <ShieldCheck className="w-3 h-3" />, desc: "Relatively stable environment." };
+  };
 
   // Map color scale based on expectedCase
   const getColor = (expected: number) => {
@@ -137,7 +145,16 @@ export default function ConflictPredictorPage() {
               <div className="glass-sm p-4 rounded-xl flex items-center gap-4 border-l-4 border-l-orange-500">
                 <AlertTriangle className="w-8 h-8 text-orange-400 opacity-80" />
                 <div>
-                  <p className="text-xs text-[#a0a8d0] uppercase tracking-wider mb-1">Global Forecasted Events</p>
+                  <p className="text-xs text-[#a0a8d0] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    Global Forecasted Events
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-[#5a6490] cursor-help" />
+                      <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-[#0a0a1a] border border-white/10 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[10px] normal-case text-[#a0a8d0] leading-relaxed">
+                        <p className="font-bold text-white mb-1">What are "Conflict Events"?</p>
+                        ACLED records individual instances of political violence including battles, explosions, protests, riots, and violence against civilians. One event represents a single tactical occurrence.
+                      </div>
+                    </div>
+                  </p>
                   <p className="text-2xl font-black text-white">{totals.toLocaleString()}</p>
                 </div>
               </div>
@@ -204,16 +221,16 @@ export default function ConflictPredictorPage() {
               )}
 
               {/* Map Legend */}
-              <div className="absolute bottom-4 right-4 glass-sm p-3 rounded-lg border border-white/10 flex flex-col gap-2 backdrop-blur-md">
-                <span className="text-[10px] font-bold text-[#a0a8d0] uppercase tracking-wider">Forecasted Events</span>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded-sm bg-rose-500" /> &gt; 1,000
+              <div className="absolute bottom-4 right-4 glass-sm p-4 rounded-xl border border-white/10 flex flex-col gap-3 backdrop-blur-md">
+                <span className="text-[10px] font-bold text-[#a0a8d0] uppercase tracking-wider">Civilian Safety Level</span>
+                <div className="flex items-center gap-3 text-[11px] font-medium text-rose-400">
+                  <div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" /> Extreme Risk
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded-sm bg-orange-400" /> 500 - 1,000
+                <div className="flex items-center gap-3 text-[11px] font-medium text-orange-400">
+                  <div className="w-3 h-3 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]" /> High Risk
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded-sm bg-amber-400" /> 200 - 500
+                <div className="flex items-center gap-3 text-[11px] font-medium text-amber-400">
+                  <div className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" /> Moderate Risk
                 </div>
               </div>
             </div>
@@ -234,7 +251,7 @@ export default function ConflictPredictorPage() {
                   <thead className="sticky top-0 bg-[#0c0d21] text-[#5a6490] font-mono border-b border-white/10 z-10">
                     <tr>
                       <th className="py-3 px-4 font-medium">Country</th>
-                      <th className="py-3 px-4 font-medium text-right">Expected</th>
+                      <th className="py-3 px-4 font-medium text-right">Status</th>
                       <th className="py-3 px-4 font-medium text-center">Δ</th>
                     </tr>
                   </thead>
@@ -248,7 +265,12 @@ export default function ConflictPredictorPage() {
                         }`}
                       >
                         <td className="py-3 px-4 font-medium text-[#f0f0ff]">{row.countryName}</td>
-                        <td className="py-3 px-4 text-right tabular-nums text-orange-200 font-semibold">{row.expectedCase.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getSafetyStatus(row.expectedCase).bg} ${getSafetyStatus(row.expectedCase).color} ${getSafetyStatus(row.expectedCase).border}`}>
+                            {getSafetyStatus(row.expectedCase).icon}
+                            {getSafetyStatus(row.expectedCase).label}
+                          </span>
+                        </td>
                         <td className="py-3 px-4 text-center">
                           {row.predictedChange === "increase" ? <ArrowUpRight className="w-4 h-4 text-rose-400 inline" /> :
                            row.predictedChange === "decrease" ? <ArrowDownRight className="w-4 h-4 text-emerald-400 inline" /> :
@@ -266,36 +288,88 @@ export default function ConflictPredictorPage() {
               </div>
             </div>
 
-            {/* Selected Country Chart */}
-            {selectedCountry && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass h-[280px] rounded-2xl border border-rose-500/20 flex flex-col p-4 bg-gradient-to-b from-rose-500/[0.02] to-transparent"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-bold text-sm">{selectedCountry.countryName}</h4>
-                  <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md uppercase font-bold">
-                    Expected: {selectedCountry.expectedCase}
-                  </span>
-                </div>
-                <div className="flex-1 min-h-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis dataKey="month" tick={{ fill: "#5a6490", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#5a6490", fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
-                      <Tooltip
-                        contentStyle={{ background: "#0a0a1a", border: "1px solid rgba(244,63,94,0.3)", borderRadius: "8px" }}
-                        itemStyle={{ fontSize: "12px" }}
-                        labelStyle={{ display: "none" }}
-                      />
-                      <Line type="monotone" dataKey="historical" stroke="#60a5fa" strokeWidth={2} dot={false} name="Historical" />
-                      <Area type="monotone" dataKey="expected" fill="rgba(244,63,94,0.2)" stroke="#f43f5e" strokeWidth={2} name="Forecast" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </motion.div>
+            {/* Selected Country Assessment & Chart */}
+            {selectedCountry ? (
+              <div className="flex flex-col gap-6">
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`glass p-5 rounded-2xl border-l-4 ${getSafetyStatus(selectedCountry.expectedCase).border} bg-gradient-to-r from-white/[0.02] to-transparent`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-black text-white">{selectedCountry.countryName}</h4>
+                    <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black uppercase ${getSafetyStatus(selectedCountry.expectedCase).bg} ${getSafetyStatus(selectedCountry.expectedCase).color}`}>
+                      {getSafetyStatus(selectedCountry.expectedCase).icon}
+                      {getSafetyStatus(selectedCountry.expectedCase).label}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[#a0a8d0] leading-relaxed mb-4">
+                    {getSafetyStatus(selectedCountry.expectedCase).desc} 
+                    {selectedCountry.predictedChange === "increase" && " Data indicates an upward trend in local volatility for the upcoming month."}
+                    {selectedCountry.predictedChange === "decrease" && " Indicators suggest a cooling period with reduced conflict intensity."}
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                      <p className="text-[10px] text-[#5a6490] uppercase font-bold mb-1">Impact Scenario</p>
+                      <p className="text-xs text-[#a0a8d0]">
+                        <span className="text-white font-bold">{selectedCountry.expectedCase}</span> events forecasted
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                      <p className="text-[10px] text-[#5a6490] uppercase font-bold mb-1">Historical Context</p>
+                      <p className="text-xs text-[#a0a8d0]">
+                        Avg: <span className="text-white font-bold">{Math.round(selectedCountry.historicalAvg || 0)}</span> events
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass h-[280px] rounded-2xl border border-white/10 flex flex-col p-4 bg-gradient-to-b from-white/[0.02] to-transparent"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold text-[10px] uppercase tracking-widest text-[#5a6490]">Predictive Trajectory</h4>
+                    <div className="flex gap-4">
+                       <div className="flex items-center gap-1.5 text-[10px] text-[#5a6490]">
+                         <div className="w-2 h-0.5 bg-[#60a5fa]" /> Historical
+                       </div>
+                       <div className="flex items-center gap-1.5 text-[10px] text-rose-400">
+                         <div className="w-2 h-0.5 bg-rose-500" /> Forecast
+                       </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis dataKey="month" tick={{ fill: "#5a6490", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#5a6490", fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+                        <Tooltip
+                          contentStyle={{ background: "#0a0a1a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+                          itemStyle={{ fontSize: "11px", fontWeight: "bold" }}
+                          labelStyle={{ color: "#5a6490", fontSize: "10px", marginBottom: "4px" }}
+                        />
+                        <Line type="monotone" dataKey="historical" stroke="#60a5fa" strokeWidth={2} dot={false} name="Past Activity" />
+                        <Area type="monotone" dataKey="expected" fill="url(#colorExpected)" stroke="#f43f5e" strokeWidth={2} name="Forecast" />
+                        <defs>
+                          <linearGradient id="colorExpected" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </motion.div>
+              </div>
+            ) : (
+              <div className="flex-1 glass rounded-2xl flex flex-col items-center justify-center text-[#5a6490] p-8 text-center">
+                <Map className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-sm">Select a nation on the map or table to view civilian safety assessment.</p>
+              </div>
             )}
           </div>
         </div>
