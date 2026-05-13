@@ -57,10 +57,23 @@ export default function ConflictPredictorPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await axios.post("/api/cron/cast-sync", {});
-      await fetchData(); // Refresh data after sync
-    } catch (e) {
+      const res = await axios.post("/api/cron/cast-sync", {});
+      if (res.data.success) {
+        alert(res.data.message || "Sync completed successfully.");
+        // If a new month was synced (likely the current month), refresh and select it
+        if (res.data.forecastMonth) {
+          const monthStr = res.data.forecastMonth.substring(0, 7);
+          await fetchData(monthStr);
+          setSelectedMonth(monthStr);
+        } else {
+          await fetchData(selectedMonth);
+        }
+      } else {
+        alert(`Sync failed: ${res.data.error || "Unknown error"}`);
+      }
+    } catch (e: any) {
       console.error(e);
+      alert(`Sync error: ${e.response?.data?.error || e.message}`);
     } finally {
       setSyncing(false);
     }

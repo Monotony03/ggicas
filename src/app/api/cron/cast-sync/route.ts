@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { queryOne, execute, generateId } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -15,11 +15,10 @@ export async function POST(request: Request) {
 
     // Use current month as the forecast month (rounded to start of month)
     const now = new Date();
-    const forecastMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    const forecastMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString();
 
     // For demonstration, since fetching from the protected platform API 
     // requires a valid session/token, we will load our seed data.
-    // The tokens can be used here via axios to the real ACLED endpoint if provided.
     console.log("Tokens provided:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
     
     let seedData: any[] = [];
@@ -44,11 +43,10 @@ export async function POST(request: Request) {
         const countryMap = new Map<string, any>();
         
         for (const item of apiData) {
-          // Filter for the current forecast month (or just aggregate all for simplicity in this demo)
           const country = item.country;
           if (!countryMap.has(country)) {
             countryMap.set(country, {
-              countryIso: country.substring(0, 3).toUpperCase(), // simplified ISO mapping
+              countryIso: country.substring(0, 3).toUpperCase(), 
               countryName: country,
               totalForecast: 0
             });
@@ -65,7 +63,7 @@ export async function POST(request: Request) {
             expectedCase: expectedCase,
             bestCase: Math.floor(expectedCase * 0.8),
             worstCase: Math.ceil(expectedCase * 1.2),
-            predictedChange: 0 // Cannot compute change without historical data in this simplified sync
+            predictedChange: "stable"
           };
         });
 
@@ -77,53 +75,103 @@ export async function POST(request: Request) {
 
     if (seedData.length === 0) {
       console.log("Using static seed data as fallback.");
-      const seedPath = path.join(process.cwd(), "src/data/cast-seed.json");
-      seedData = JSON.parse(fs.readFileSync(seedPath, "utf-8"));
+      const possiblePaths = [
+        path.join(process.cwd(), "src/data/cast-seed.json"),
+        path.join(process.cwd(), "data/cast-seed.json"),
+        path.join(process.cwd(), "public/data/cast-seed.json"),
+        path.join(process.cwd(), "src/lib/data/cast-seed.json"),
+        path.join(process.cwd(), "src/app/api/cron/cast-sync/cast-seed.json")
+      ];
+      
+      let seedPath = "";
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          seedPath = p;
+          console.log(`Found seed data at: ${p}`);
+          break;
+        }
+      }
+
+      if (!seedPath) {
+        console.error("Searched paths:", possiblePaths);
+        throw new Error("Could not find cast-seed.json in any expected location.");
+      }
+
+      try {
+        const rawData = fs.readFileSync(seedPath, "utf-8");
+        seedData = JSON.parse(rawData);
+      } catch (e: any) {
+        throw new Error(`Failed to parse seed data at ${seedPath}: ${e.message}`);
+      }
     }
 
     let upsertedCount = 0;
+    const errors: string[] = [];
 
     for (const row of seedData) {
-      await prisma.conflictForecast.upsert({
-        where: {
-          countryIso_forecastMonth_violenceType: {
-            countryIso: row.countryIso,
-            forecastMonth: forecastMonth,
-            violenceType: "All Event Types",
-          },
-        },
-        update: {
-          bestCase: row.bestCase,
-          expectedCase: row.expectedCase,
-          worstCase: row.worstCase,
-          predictedChange: row.predictedChange,
-          historicalAvg: row.expectedCase * 0.9, // mock avg
-          lastSyncedAt: new Date(),
-        },
-        create: {
-          countryIso: row.countryIso,
-          countryName: row.countryName,
-          forecastMonth: forecastMonth,
-          bestCase: row.bestCase,
-          expectedCase: row.expectedCase,
-          worstCase: row.worstCase,
-          predictedChange: row.predictedChange,
-          historicalAvg: row.expectedCase * 0.9,
-          violenceType: "All Event Types",
-        },
-      });
-      upsertedCount++;
+      try {
+        // UPSERT using INSERT OR REPLACE (SQLite's ON CONFLICT clause)
+        // First check if record exists
+        const existing = queryOne<{ id: string }>(
+          `SELECT id FROM "ConflictForecast"
+           WHERE "countryIso" = ? AND "forecastMonth" = ? AND "violenceType" = ?`,
+          [row.countryIso, forecastMonth, "All Event Types"]
+        );
+
+        if (existing) {
+          // UPDATE existing record
+          execute(
+            `UPDATE "ConflictForecast" SET
+              "bestCase" = ?, "expectedCase" = ?, "worstCase" = ?,
+              "predictedChange" = ?, "historicalAvg" = ?, "lastSyncedAt" = ?,
+              "updatedAt" = ?
+             WHERE id = ?`,
+            [
+              Number(row.bestCase), Number(row.expectedCase), Number(row.worstCase),
+              row.predictedChange || "stable", Number(row.expectedCase) * 0.9,
+              new Date().toISOString(), new Date().toISOString(), existing.id
+            ]
+          );
+        } else {
+          // INSERT new record
+          const id = generateId();
+          execute(
+            `INSERT INTO "ConflictForecast"
+              (id, "countryIso", "countryName", "forecastMonth", "bestCase", "expectedCase",
+               "worstCase", "predictedChange", "historicalAvg", "violenceType", "lastSyncedAt",
+               "createdAt", "updatedAt")
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              id, row.countryIso, row.countryName, forecastMonth,
+              Number(row.bestCase), Number(row.expectedCase), Number(row.worstCase),
+              row.predictedChange || "stable", Number(row.expectedCase) * 0.9,
+              "All Event Types", new Date().toISOString(),
+              new Date().toISOString(), new Date().toISOString()
+            ]
+          );
+        }
+        upsertedCount++;
+      } catch (e: any) {
+        console.error(`Failed to upsert record for ${row.countryName}:`, e.message);
+        errors.push(`${row.countryName}: ${e.message}`);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully synced ${upsertedCount} forecast records for ${forecastMonth.toISOString().substring(0, 7)}.`,
-      forecastMonth,
+      message: `Successfully processed ${seedData.length} records. Sync completion: ${upsertedCount}/${seedData.length}.`,
+      count: upsertedCount,
+      errors: errors.length > 0 ? errors : undefined,
+      forecastMonth: forecastMonth,
     });
-  } catch (error) {
-    console.error("Failed to sync CAST data:", error);
+  } catch (error: any) {
+    console.error("Critical failure in CAST sync:", error);
     return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
+      { 
+        success: false, 
+        error: error.message || "Internal Server Error",
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import prisma from '@/lib/prisma';
+import { queryAll } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,22 +7,26 @@ export async function GET(request: NextRequest) {
     const year = parseInt(searchParams.get('year') || '2024');
     const window = 3; // ±3 year sliding window so the slider always shows data
 
-    const transfers = await prisma.armsTransfer.findMany({
-      where: {
-        year: {
-          gte: year - window,
-          lte: year + window,
-        },
-      },
-      include: {
-        exporter: { select: { id: true, name: true, isoCode: true } },
-        importer: { select: { id: true, name: true, isoCode: true } },
-      },
-      orderBy: { volumeTIV: 'desc' },
-      take: 60, // cap to avoid flooding the globe with too many arcs
-    });
+    const transfers = queryAll(`
+      SELECT at.*,
+        ex.id as ex_id, ex.name as ex_name, ex.isoCode as ex_iso,
+        im.id as im_id, im.name as im_name, im.isoCode as im_iso
+      FROM "ArmsTransfer" at
+      JOIN "Country" ex ON at."exporterId" = ex.id
+      JOIN "Country" im ON at."importerId" = im.id
+      WHERE at.year >= ? AND at.year <= ?
+      ORDER BY at."volumeTIV" DESC
+      LIMIT 60
+    `, [year - window, year + window]) as Record<string, unknown>[];
 
-    return NextResponse.json(transfers);
+    const data = transfers.map(t => ({
+      id: t.id, exporterId: t.exporterId, importerId: t.importerId,
+      weaponType: t.weaponType, year: t.year, volumeTIV: t.volumeTIV,
+      exporter: { id: t.ex_id, name: t.ex_name, isoCode: t.ex_iso },
+      importer: { id: t.im_id, name: t.im_name, isoCode: t.im_iso },
+    }));
+
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Failed to fetch arms transfers:", error);
     return NextResponse.json({ error: 'Failed to fetch arms transfers' }, { status: 500 });

@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server'
-import prisma from '@/lib/prisma'
+import { queryAll, queryOne, execute, generateId } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,41 +10,61 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '100')
 
-    const where: any = {}
+    const conditions: string[] = []
+    const params: unknown[] = []
 
     if (yearStr) {
-      const yearDate = new Date(`${yearStr}-01-01`)
-      where.startDate = { lte: yearDate }
-      where.OR = [
-        { endDate: null },
-        { endDate: { gte: yearDate } }
-      ]
+      const yearDate = `${yearStr}-01-01T00:00:00.000Z`
+      conditions.push(`a."startDate" <= ?`)
+      params.push(yearDate)
+      conditions.push(`(a."endDate" IS NULL OR a."endDate" >= ?)`)
+      params.push(yearDate)
     }
-
     if (search) {
-      where.allianceType = { contains: search }
+      conditions.push(`a."allianceType" LIKE ?`)
+      params.push(`%${search}%`)
     }
     if (type) {
-      where.allianceType = type
+      conditions.push(`a."allianceType" = ?`)
+      params.push(type)
     }
 
-    const total = await prisma.alliance.count({ where })
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-    const alliances = await prisma.alliance.findMany({
-      where,
-      include: {
-        countryA: true,
-        countryB: true,
-        organization: true
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { startDate: 'desc' },
-    })
+    const countRow = queryOne<{ total: number }>(`SELECT COUNT(*) as total FROM "Alliance" a ${whereClause}`, params)
+    const total = countRow?.total ?? 0
+
+    const offset = (page - 1) * limit
+    const mainParams = [...params, limit, offset]
+
+    const alliances = queryAll(`
+      SELECT a.*,
+        cA.id as cA_id, cA.name as cA_name, cA.isoCode as cA_iso, cA.region as cA_region,
+          cA.gdpCurrentUsd as cA_gdp, cA.militaryBudget as cA_mil,
+        cB.id as cB_id, cB.name as cB_name, cB.isoCode as cB_iso, cB.region as cB_region,
+          cB.gdpCurrentUsd as cB_gdp, cB.militaryBudget as cB_mil,
+        org.id as org_id, org.name as org_name, org.type as org_type
+      FROM "Alliance" a
+      JOIN "Country" cA ON a."countryAId" = cA.id
+      LEFT JOIN "Country" cB ON a."countryBId" = cB.id
+      LEFT JOIN "Organization" org ON a."organizationId" = org.id
+      ${whereClause}
+      ORDER BY a."startDate" DESC
+      LIMIT ? OFFSET ?
+    `, mainParams) as Record<string, unknown>[]
+
+    const data = alliances.map(a => ({
+      id: a.id, countryAId: a.countryAId, countryBId: a.countryBId,
+      organizationId: a.organizationId, allianceType: a.allianceType,
+      motivation: a.motivation, startDate: a.startDate, endDate: a.endDate,
+      countryA: { id: a.cA_id, name: a.cA_name, isoCode: a.cA_iso, region: a.cA_region, gdpCurrentUsd: a.cA_gdp, militaryBudget: a.cA_mil },
+      countryB: a.cB_id ? { id: a.cB_id, name: a.cB_name, isoCode: a.cB_iso, region: a.cB_region, gdpCurrentUsd: a.cB_gdp, militaryBudget: a.cB_mil } : null,
+      organization: a.org_id ? { id: a.org_id, name: a.org_name, type: a.org_type } : null,
+    }))
 
     return NextResponse.json({
-      data: alliances,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
   } catch (error) {
     console.error(error)
@@ -59,17 +79,13 @@ export async function POST(request: NextRequest) {
     if (!countryAId || !allianceType || !startDate) {
       return NextResponse.json({ error: 'countryAId, allianceType and startDate are required' }, { status: 400 })
     }
-    const alliance = await prisma.alliance.create({
-      data: {
-        countryAId,
-        countryBId: countryBId || null,
-        organizationId: organizationId || null,
-        allianceType,
-        motivation: motivation || null,
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-      }
-    })
+    const id = generateId()
+    execute(
+      `INSERT INTO "Alliance" (id, "countryAId", "countryBId", "organizationId", "allianceType", motivation, "startDate", "endDate")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, countryAId, countryBId || null, organizationId || null, allianceType, motivation || null, new Date(startDate).toISOString(), endDate ? new Date(endDate).toISOString() : null]
+    )
+    const alliance = queryOne(`SELECT * FROM "Alliance" WHERE id = ?`, [id])
     return NextResponse.json(alliance, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Failed to create alliance' }, { status: 500 })

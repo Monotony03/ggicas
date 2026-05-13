@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { queryAll, queryOne } from "@/lib/db";
 
 export async function GET(request: Request) {
   try {
@@ -8,30 +8,26 @@ export async function GET(request: Request) {
     const violenceType = searchParams.get("type") || "All Event Types";
 
     // If no month is provided, get the latest month available in the db
-    let targetMonth: Date;
+    let targetMonth: string;
 
     if (month) {
-      targetMonth = new Date(month);
+      targetMonth = new Date(month).toISOString();
     } else {
-      const latest = await prisma.conflictForecast.findFirst({
-        orderBy: { forecastMonth: "desc" },
-        select: { forecastMonth: true },
-      });
+      const latest = queryOne<{ forecastMonth: string }>(
+        `SELECT "forecastMonth" FROM "ConflictForecast" ORDER BY "forecastMonth" DESC LIMIT 1`
+      );
       if (!latest) {
         return NextResponse.json({ data: [] });
       }
       targetMonth = latest.forecastMonth;
     }
 
-    const data = await prisma.conflictForecast.findMany({
-      where: {
-        forecastMonth: targetMonth,
-        violenceType,
-      },
-      orderBy: {
-        expectedCase: "desc",
-      },
-    });
+    const data = queryAll(
+      `SELECT * FROM "ConflictForecast"
+       WHERE "forecastMonth" = ? AND "violenceType" = ?
+       ORDER BY "expectedCase" DESC`,
+      [targetMonth, violenceType]
+    );
 
     return NextResponse.json({ data });
   } catch (error) {

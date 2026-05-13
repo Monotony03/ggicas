@@ -1,4 +1,4 @@
-import prisma from '../prisma';
+import { queryOne, execute, generateId } from '../db';
 
 // This is a placeholder parser for SIPRI CSV export format.
 // Users export the TIV (Trend Indicator Value) table from SIPRI's web interface as CSV.
@@ -23,37 +23,28 @@ export async function syncSipriData(csvContent: string) {
 
       if (isNaN(year) || isNaN(volumeTIV)) continue;
 
-      // Find countries
-      const exporter = await prisma.country.findFirst({ where: { name: exporterName } });
-      const importer = await prisma.country.findFirst({ where: { name: importerName } });
+      // Find countries by name
+      const exporter = queryOne<{ id: string }>(`SELECT id FROM "Country" WHERE name = ?`, [exporterName]);
+      const importer = queryOne<{ id: string }>(`SELECT id FROM "Country" WHERE name = ?`, [importerName]);
 
       if (!exporter || !importer) {
         // In a real pipeline, we might maintain an alias mapping for country names
         continue;
       }
 
-      // Upsert the arms transfer
-      // @ts-ignore — armsTransfer model not yet in schema
-      const existing = await prisma.armsTransfer.findFirst({
-        where: {
-          exporterId: exporter.id,
-          importerId: importer.id,
-          weaponType: weaponType,
-          year: year
-        }
-      });
+      // Check if this exact arms transfer already exists (upsert pattern)
+      const existing = queryOne(
+        `SELECT id FROM "ArmsTransfer"
+         WHERE "exporterId" = ? AND "importerId" = ? AND "weaponType" = ? AND year = ?`,
+        [exporter.id, importer.id, weaponType, year]
+      );
 
       if (!existing) {
-        // @ts-ignore
-        await prisma.armsTransfer.create({
-          data: {
-            exporterId: exporter.id,
-            importerId: importer.id,
-            weaponType: weaponType,
-            year: year,
-            volumeTIV: volumeTIV
-          }
-        });
+        execute(
+          `INSERT INTO "ArmsTransfer" (id, "exporterId", "importerId", "weaponType", year, "volumeTIV")
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [generateId(), exporter.id, importer.id, weaponType, year, volumeTIV]
+        );
         importedCount++;
       }
     }

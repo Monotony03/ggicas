@@ -1,6 +1,15 @@
-import { PrismaClient } from '@prisma/client'
+import Database from 'better-sqlite3'
+import path from 'path'
+import crypto from 'crypto'
 
-const prisma = new PrismaClient()
+const DB_PATH = path.join(process.cwd(), 'database', 'dev.db')
+const db = new Database(DB_PATH)
+db.pragma('journal_mode = WAL')
+db.pragma('foreign_keys = ON')
+
+function generateId(): string {
+  return crypto.randomUUID()
+}
 
 /* ─── Countries ──────────────────────────────────────────────────────────── */
 const countriesData = [
@@ -532,145 +541,138 @@ const armsTransfersData = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MAIN
+   MAIN — Raw SQL seed using better-sqlite3 (no Prisma)
 ═══════════════════════════════════════════════════════════════════════════ */
-async function main() {
-  console.log('🗑️  Clearing database...')
-  await prisma.armsTransfer.deleteMany()
-  await prisma.tradeRelation.deleteMany()
-  await prisma.sanction.deleteMany()
-  await prisma.conflictInvolvement.deleteMany()
-  await prisma.alliance.deleteMany()
-  await prisma.conflict.deleteMany()
-  await prisma.organization.deleteMany()
-  await prisma.leader.deleteMany()
-  await prisma.country.deleteMany()
+function main() {
+  const insertCountry = db.prepare(`INSERT INTO "Country" (id, name, isoCode, region, gdpCurrentUsd, militaryBudget, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+  const insertLeader = db.prepare(`INSERT INTO "Leader" (id, name, title, "countryId", "startDate", "endDate") VALUES (?, ?, ?, ?, ?, ?)`)
+  const insertOrg = db.prepare(`INSERT INTO "Organization" (id, name, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)`)
+  const insertAlliance = db.prepare(`INSERT INTO "Alliance" (id, "countryAId", "countryBId", "organizationId", "allianceType", motivation, "startDate", "endDate") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+  const insertConflict = db.prepare(`INSERT INTO "Conflict" (id, name, type, cause, "startDate", "endDate", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+  const insertInvolvement = db.prepare(`INSERT INTO "ConflictInvolvement" (id, "conflictId", "countryId", role, "startDate", "endDate") VALUES (?, ?, ?, ?, ?, ?)`)
+  const insertSanction = db.prepare(`INSERT INTO "Sanction" (id, "imposingCountryId", "targetCountryId", "sanctionType", "startDate", "endDate") VALUES (?, ?, ?, ?, ?, ?)`)
+  const insertTrade = db.prepare(`INSERT INTO "TradeRelation" (id, "countryAId", "countryBId", year, "tradeVolumeUsd") VALUES (?, ?, ?, ?, ?)`)
+  const insertArms = db.prepare(`INSERT INTO "ArmsTransfer" (id, "exporterId", "importerId", "weaponType", year, "volumeTIV") VALUES (?, ?, ?, ?, ?, ?)`)
 
-  // ── Countries
-  console.log('🌍 Creating countries...')
-  for (const c of countriesData) {
-    await prisma.country.create({ data: c })
-  }
-  const countries = await prisma.country.findMany()
-  const cMap = new Map(countries.map(c => [c.isoCode, c.id]))
+  // Wrap everything in a transaction for ACID compliance
+  const seedAll = db.transaction(() => {
+    console.log('🗑️  Clearing database...')
+    db.exec(`DELETE FROM "ArmsTransfer"`)
+    db.exec(`DELETE FROM "TradeRelation"`)
+    db.exec(`DELETE FROM "Sanction"`)
+    db.exec(`DELETE FROM "ConflictInvolvement"`)
+    db.exec(`DELETE FROM "Alliance"`)
+    db.exec(`DELETE FROM "Conflict"`)
+    db.exec(`DELETE FROM "Organization"`)
+    db.exec(`DELETE FROM "Leader"`)
+    db.exec(`DELETE FROM "AuditLog"`)
+    db.exec(`DELETE FROM "Country"`)
 
-  // ── Leaders
-  console.log('👤 Creating leaders...')
-  for (const l of leadersData) {
-    const countryId = cMap.get(l.iso)
-    if (!countryId) { console.warn(`  Skip leader for unknown iso: ${l.iso}`); continue }
-    await prisma.leader.create({
-      data: {
-        name: l.name, title: l.title, countryId,
-        startDate: new Date(l.start),
-        endDate: l.end ? new Date(l.end) : null,
-      }
-    })
-  }
-
-  // ── Organizations
-  console.log('🏛️  Creating organizations...')
-  const nato       = await prisma.organization.create({ data: { name: 'NATO',         type: 'Military'  } })
-  const warsawPact = await prisma.organization.create({ data: { name: 'Warsaw Pact',  type: 'Military'  } })
-  const aukus      = await prisma.organization.create({ data: { name: 'AUKUS',        type: 'Military'  } })
-  const sco        = await prisma.organization.create({ data: { name: 'SCO',          type: 'Political' } })
-
-  // Org membership map — purely for reference; alliances carry the real data
-  void nato; void warsawPact; void aukus; void sco
-
-  // ── Alliances
-  console.log('🤝 Creating alliances...')
-  for (const a of alliancesData) {
-    const idA = cMap.get(a.a)
-    const idB = cMap.get(a.b)
-    if (!idA || !idB) { console.warn(`  Skip alliance ${a.a}↔${a.b}`); continue }
-    await prisma.alliance.create({
-      data: {
-        countryAId: idA, countryBId: idB,
-        allianceType: a.type, motivation: a.motivation,
-        startDate: new Date(a.start),
-        endDate: a.end ? new Date(a.end) : null,
-      }
-    })
-  }
-
-  // ── Conflicts
-  console.log('⚔️  Creating conflicts...')
-  for (const cf of conflictsData) {
-    const conflict = await prisma.conflict.create({
-      data: {
-        name: cf.name, type: cf.type, cause: cf.cause,
-        startDate: new Date(cf.start),
-        endDate: cf.end ? new Date(cf.end) : null,
-      }
-    })
-    for (const p of cf.participants) {
-      const countryId = cMap.get(p.iso)
-      if (!countryId) { console.warn(`  Skip participant ${p.iso} in ${cf.name}`); continue }
-      await prisma.conflictInvolvement.create({
-        data: {
-          conflictId: conflict.id, countryId,
-          role: p.role,
-          startDate: new Date(cf.start),
-          endDate: cf.end ? new Date(cf.end) : null,
-        }
-      })
+    // ── Countries
+    console.log('🌍 Creating countries...')
+    const now = new Date().toISOString()
+    for (const c of countriesData) {
+      insertCountry.run(generateId(), c.name, c.isoCode, c.region, c.gdpCurrentUsd, c.militaryBudget, now, now)
     }
-  }
 
-  // ── Sanctions
-  console.log('🚫 Creating sanctions...')
-  for (const s of sanctionsData) {
-    const imposerId = cMap.get(s.imposer)
-    const targetId = cMap.get(s.target)
-    if (!imposerId || !targetId) { console.warn(`  Skip sanction ${s.imposer}→${s.target}`); continue }
-    await prisma.sanction.create({
-      data: {
-        imposingCountryId: imposerId,
-        targetCountryId: targetId,
-        sanctionType: s.type,
-        startDate: new Date(s.start),
-        endDate: s.end ? new Date(s.end) : null,
+    // Build ISO → ID map
+    const countries = db.prepare(`SELECT id, isoCode FROM "Country"`).all() as { id: string; isoCode: string }[]
+    const cMap = new Map(countries.map(c => [c.isoCode, c.id]))
+
+    // ── Leaders
+    console.log('👤 Creating leaders...')
+    for (const l of leadersData) {
+      const countryId = cMap.get(l.iso)
+      if (!countryId) { console.warn(`  Skip leader for unknown iso: ${l.iso}`); continue }
+      insertLeader.run(
+        generateId(), l.name, l.title, countryId,
+        new Date(l.start).toISOString(),
+        l.end ? new Date(l.end).toISOString() : null
+      )
+    }
+
+    // ── Organizations
+    console.log('🏛️  Creating organizations...')
+    insertOrg.run(generateId(), 'NATO', 'Military', now, now)
+    insertOrg.run(generateId(), 'Warsaw Pact', 'Military', now, now)
+    insertOrg.run(generateId(), 'AUKUS', 'Military', now, now)
+    insertOrg.run(generateId(), 'SCO', 'Political', now, now)
+
+    // ── Alliances
+    console.log('🤝 Creating alliances...')
+    for (const a of alliancesData) {
+      const idA = cMap.get(a.a)
+      const idB = cMap.get(a.b)
+      if (!idA || !idB) { console.warn(`  Skip alliance ${a.a}↔${a.b}`); continue }
+      insertAlliance.run(
+        generateId(), idA, idB, null, a.type, a.motivation,
+        new Date(a.start).toISOString(),
+        a.end ? new Date(a.end).toISOString() : null
+      )
+    }
+
+    // ── Conflicts
+    console.log('⚔️  Creating conflicts...')
+    for (const cf of conflictsData) {
+      const conflictId = generateId()
+      insertConflict.run(
+        conflictId, cf.name, cf.type, cf.cause,
+        new Date(cf.start).toISOString(),
+        cf.end ? new Date(cf.end).toISOString() : null,
+        now, now
+      )
+      for (const p of cf.participants) {
+        const countryId = cMap.get(p.iso)
+        if (!countryId) { console.warn(`  Skip participant ${p.iso} in ${cf.name}`); continue }
+        insertInvolvement.run(
+          generateId(), conflictId, countryId, p.role,
+          new Date(cf.start).toISOString(),
+          cf.end ? new Date(cf.end).toISOString() : null
+        )
       }
-    })
-  }
+    }
 
-  // ── Trade Relations
-  console.log('📦 Creating trade relations...')
-  for (const t of tradeData) {
-    const idA = cMap.get(t.a)
-    const idB = cMap.get(t.b)
-    if (!idA || !idB) { console.warn(`  Skip trade ${t.a}↔${t.b}`); continue }
-    await prisma.tradeRelation.create({
-      data: {
-        countryAId: idA,
-        countryBId: idB,
-        year: t.year,
-        tradeVolumeUsd: t.volume,
-      }
-    })
-  }
+    // ── Sanctions
+    console.log('🚫 Creating sanctions...')
+    for (const s of sanctionsData) {
+      const imposerId = cMap.get(s.imposer)
+      const targetId = cMap.get(s.target)
+      if (!imposerId || !targetId) { console.warn(`  Skip sanction ${s.imposer}→${s.target}`); continue }
+      insertSanction.run(
+        generateId(), imposerId, targetId, s.type,
+        new Date(s.start).toISOString(),
+        s.end ? new Date(s.end).toISOString() : null
+      )
+    }
 
-  // ── Arms Transfers
-  console.log('🚀 Creating arms transfers...')
-  for (const at of armsTransfersData) {
-    const exporterId = cMap.get(at.exp)
-    const importerId = cMap.get(at.imp)
-    if (!exporterId || !importerId) { console.warn(`  Skip arms transfer ${at.exp}→${at.imp}`); continue }
-    await prisma.armsTransfer.create({
-      data: {
-        exporterId,
-        importerId,
-        weaponType: at.type,
-        year: at.year,
-        volumeTIV: at.tiv,
-      }
-    })
-  }
+    // ── Trade Relations
+    console.log('📦 Creating trade relations...')
+    for (const t of tradeData) {
+      const idA = cMap.get(t.a)
+      const idB = cMap.get(t.b)
+      if (!idA || !idB) { console.warn(`  Skip trade ${t.a}↔${t.b}`); continue }
+      insertTrade.run(generateId(), idA, idB, t.year, t.volume)
+    }
 
+    // ── Arms Transfers
+    console.log('🚀 Creating arms transfers...')
+    for (const at of armsTransfersData) {
+      const exporterId = cMap.get(at.exp)
+      const importerId = cMap.get(at.imp)
+      if (!exporterId || !importerId) { console.warn(`  Skip arms transfer ${at.exp}→${at.imp}`); continue }
+      insertArms.run(generateId(), exporterId, importerId, at.type, at.year, at.tiv)
+    }
+  })
+
+  seedAll()
   console.log('✅ Seeding complete!')
 }
 
-main()
-  .then(async () => { await prisma.$disconnect() })
-  .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })
+try {
+  main()
+} catch (e) {
+  console.error(e)
+  process.exit(1)
+} finally {
+  db.close()
+}

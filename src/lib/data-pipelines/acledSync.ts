@@ -1,5 +1,5 @@
 import axios from 'axios';
-import prisma from '../prisma';
+import { queryOne, execute, generateId } from '../db';
 
 const ACLED_API_URL = 'https://api.acleddata.com/acled/read/';
 
@@ -29,44 +29,43 @@ export async function syncAcledData(apiKey: string, email: string) {
     let importedCount = 0;
 
     for (const event of events) {
-      // Very simplified mapping of ACLED event to our Conflict schema
-      const country = await prisma.country.findFirst({
-        where: { name: event.country }
-      });
-
+      // Find country by name
+      const country = queryOne<{ id: string }>(
+        `SELECT id FROM "Country" WHERE name = ?`,
+        [event.country]
+      );
       if (!country) continue;
 
       // Find or create the conflict
-      let conflict = await prisma.conflict.findFirst({
-        where: { name: `ACLED: ${event.event_type} in ${event.country}` }
-      });
+      const conflictName = `ACLED: ${event.event_type} in ${event.country}`;
+      let conflict = queryOne<{ id: string }>(
+        `SELECT id FROM "Conflict" WHERE name = ?`,
+        [conflictName]
+      );
 
       if (!conflict) {
-        conflict = await prisma.conflict.create({
-          data: {
-            name: `ACLED: ${event.event_type} in ${event.country}`,
-            type: event.event_type,
-            cause: event.notes,
-            startDate: new Date(event.event_date),
-            endDate: null,
-          }
-        });
+        const conflictId = generateId();
+        const now = new Date().toISOString();
+        execute(
+          `INSERT INTO "Conflict" (id, name, type, cause, "startDate", "endDate", "createdAt", "updatedAt")
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [conflictId, conflictName, event.event_type, event.notes, new Date(event.event_date).toISOString(), null, now, now]
+        );
+        conflict = { id: conflictId };
       }
 
-      // Add involvement
-      const existingInvolvement = await prisma.conflictInvolvement.findFirst({
-        where: { conflictId: conflict.id, countryId: country.id }
-      });
+      // Add involvement if not exists
+      const existingInvolvement = queryOne(
+        `SELECT id FROM "ConflictInvolvement" WHERE "conflictId" = ? AND "countryId" = ?`,
+        [conflict.id, country.id]
+      );
 
       if (!existingInvolvement) {
-        await prisma.conflictInvolvement.create({
-          data: {
-            conflictId: conflict.id,
-            countryId: country.id,
-            role: 'Participant', // ACLED actors can be mapped more specifically here
-            startDate: new Date(event.event_date),
-          }
-        });
+        execute(
+          `INSERT INTO "ConflictInvolvement" (id, "conflictId", "countryId", role, "startDate", "endDate")
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [generateId(), conflict.id, country.id, 'Participant', new Date(event.event_date).toISOString(), null]
+        );
         importedCount++;
       }
     }

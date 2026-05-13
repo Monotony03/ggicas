@@ -485,8 +485,8 @@ export default function DashboardPage() {
               "GROUP BY + COUNT",
               "Multi-table JOINs",
               "Temporal Aggregation",
-              "Raw SQL via $queryRaw",
-              "Prisma ORM",
+              "Raw SQL (better-sqlite3)",
+              "Database Triggers",
               "Database Views",
               "Indexing",
             ].map((c) => (
